@@ -4,7 +4,7 @@ const ru: LANG_MESSAGE = {
   // Navigation
   setup: 'Настройка',
   overview: 'Обзор',
-  proxies: 'Прокси',
+  proxies: 'Группы политик',
   rules: 'Правила',
   connections: 'Подключения',
   logs: 'Журнал',
@@ -67,7 +67,8 @@ const ru: LANG_MESSAGE = {
   appearance: 'Внешний вид',
   defaultTheme: 'Тема по умолчанию',
   darkTheme: 'Темная тема',
-  proxyProvider: 'Провайдер прокси',
+  proxyProvider: 'Провайдеры прокси',
+  nodeGroups: 'Группы узлов',
   ruleProvider: 'Провайдер правил',
   expire: 'Истекает',
   noExpire: 'Нет',

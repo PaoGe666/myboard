@@ -2,7 +2,7 @@ const en = {
   // Navigation
   setup: 'Setup',
   overview: 'Overview',
-  proxies: 'Proxies',
+  proxies: 'Policy Groups',
   rules: 'Rules',
   connections: 'Connections',
   logs: 'Logs',
@@ -65,7 +65,8 @@ const en = {
   appearance: 'Appearance',
   defaultTheme: 'Default theme',
   darkTheme: 'Dark theme',
-  proxyProvider: 'Proxy provider',
+  proxyProvider: 'Proxy Providers',
+  nodeGroups: 'Node Groups',
   ruleProvider: 'Rule provider',
   expire: 'Expires',
   noExpire: 'No expiry',

@@ -4,7 +4,7 @@ const zh: LANG_MESSAGE = {
   // Navigation
   setup: '配置',
   overview: '概览',
-  proxies: '代理',
+  proxies: '策略组',
   rules: '规则',
   connections: '连接',
   logs: '日志',
@@ -68,6 +68,7 @@ const zh: LANG_MESSAGE = {
   defaultTheme: '默认主题',
   darkTheme: '深色主题',
   proxyProvider: '代理提供商',
+  nodeGroups: '节点组',
   ruleProvider: '规则提供商',
   expire: '到期时间',
   noExpire: '不限时',

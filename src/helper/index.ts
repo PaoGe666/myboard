@@ -42,6 +42,96 @@ export const isProxyGroup = (name: string) => {
   ].includes(proxyNode.type.toLowerCase() as PROXY_TYPE)
 }
 
+export const NODE_GROUP_BUCKET_ORDER = [
+  '香港',
+  '台湾',
+  '日本',
+  '新加坡',
+  '美国',
+  '韩国',
+  '德国',
+  '英国',
+  '荷兰',
+  '芬兰',
+  '冷门',
+  '兜底策略',
+]
+
+const NODE_GROUP_BUCKET_RULES = [
+  { label: '香港', patterns: [/香港/, /\bhk\b/, /hong\s*kong/] },
+  { label: '台湾', patterns: [/台湾/, /\btw\b/, /taiwan/] },
+  { label: '日本', patterns: [/日本/, /\bjp\b/, /\bjpn\b/, /japan/] },
+  { label: '新加坡', patterns: [/新加坡/, /\bsg\b/, /\bsgp\b/, /singapore/] },
+  { label: '美国', patterns: [/美国/, /\bus\b/, /\busa\b/, /united\s*states/, /america/] },
+  { label: '韩国', patterns: [/韩国/, /\bkr\b/, /\bkor\b/, /korea/] },
+  { label: '德国', patterns: [/德国/, /\bde\b/, /germany/] },
+  { label: '英国', patterns: [/英国/, /\buk\b/, /\bgb\b/, /britain/, /united\s*kingdom/] },
+  { label: '荷兰', patterns: [/荷兰/, /\bnl\b/, /netherlands/] },
+  { label: '芬兰', patterns: [/芬兰/, /\bfi\b/, /finland/] },
+  { label: '冷门', patterns: [/冷门/] },
+  { label: '兜底策略', patterns: [/^全球加速$/, /^globe$/, /^global$/] },
+]
+
+export const getNodeGroupBucketName = (name: string) => {
+  const normalizedName = name.trim().toLowerCase()
+
+  const matchedRule = NODE_GROUP_BUCKET_RULES.find(({ patterns }) =>
+    patterns.some((pattern) => pattern.test(normalizedName)),
+  )
+
+  return matchedRule?.label || name
+}
+
+export const hasNodeGroupBucketName = (name: string) => {
+  return getNodeGroupBucketName(name) !== name || NODE_GROUP_BUCKET_ORDER.includes(name.trim())
+}
+
+export const isNodeGroup = (name: string) => {
+  const proxyNode = proxyMap.value[name]
+
+  if (!proxyNode?.all?.length) {
+    return false
+  }
+
+  const normalizedName = name.trim().toLowerCase()
+  const strategyGroupPatterns = [
+    /global/,
+    /proxy/,
+    /ai/,
+    /direct/,
+    /telegram/,
+    /youtube/,
+    /netflix/,
+    /tiktok/,
+    /instagram/,
+    /^x$/,
+    /github/,
+    /steam/,
+    /apple/,
+    /全球/,
+    /加速/,
+    /专线/,
+    /直连/,
+    /代理/,
+    /兜底/,
+  ]
+
+  if (hasNodeGroupBucketName(name)) {
+    return true
+  }
+
+  if (strategyGroupPatterns.some((pattern) => pattern.test(normalizedName))) {
+    return false
+  }
+
+  const children = proxyNode.all.filter((child) => child !== name)
+  const childGroups = children.filter((child) => isProxyGroup(child))
+  const childNodes = children.filter((child) => proxyMap.value[child] && !isProxyGroup(child))
+
+  // Region/pool groups usually contain mostly nodes, sometimes with one auto-test subgroup.
+  return childNodes.length > 0 && childNodes.length >= childGroups.length
+}
+
 export const getHostFromConnection = (connection: Connection) => {
   const port = connection.metadata.destinationPort
   const host =

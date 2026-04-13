@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import ProxiesCtrl from '@/components/controls/ProxiesCtrl'
+import NodeGroupBucket from '@/components/proxies/NodeGroupBucket.vue'
 import ProxyGroup from '@/components/proxies/ProxyGroup.vue'
 import ProxyGroupForMobile from '@/components/proxies/ProxyGroupForMobile.vue'
 import ProxyProvider from '@/components/proxies/ProxyProvider.vue'
@@ -63,6 +64,7 @@ const proxiesRef = ref()
 const scrollStatus = useSessionStorage('cache/proxies-scroll-status', {
   [PROXY_TAB_TYPE.PROVIDER]: 0,
   [PROXY_TAB_TYPE.PROXIES]: 0,
+  [PROXY_TAB_TYPE.NODE_GROUPS]: 0,
 })
 
 const handleScroll = () => {
@@ -111,6 +113,10 @@ onMounted(() => {
 const renderComponent = computed(() => {
   if (proxiesTabShow.value === PROXY_TAB_TYPE.PROVIDER) {
     return ProxyProvider
+  }
+
+  if (proxiesTabShow.value === PROXY_TAB_TYPE.NODE_GROUPS) {
+    return NodeGroupBucket
   }
 
   if (isMiddleScreen.value && displayTwoColumns.value) {

@@ -1,7 +1,8 @@
 import { disconnectByIdAPI, isSingBox, updateProxyProviderAPI } from '@/api'
-import { renderGroups } from '@/composables/proxies'
+import { nodeGroupBuckets, renderGroups } from '@/composables/proxies'
 import { useCtrlsBar } from '@/composables/useCtrlsBar'
 import { PROXY_SORT_TYPE, PROXY_TAB_TYPE, ROUTE_NAME, SETTINGS_MENU_KEY } from '@/constant'
+import { isNodeGroup } from '@/helper'
 import { getMinCardWidth } from '@/helper/utils'
 import { configs, updateConfigs } from '@/store/config'
 import { activeConnections } from '@/store/connections'
@@ -11,7 +12,7 @@ import {
   hasSmartGroup,
   proxiesFilter,
   proxiesTabShow,
-  proxyGroupList,
+  proxyMap,
   proxyProviederList,
 } from '@/store/proxies'
 import {
@@ -117,13 +118,20 @@ export default defineComponent({
     }
 
     const tabsWithNumbers = computed(() => {
+      const allGroupNames = Object.keys(proxyMap.value).filter(
+        (name) => proxyMap.value[name]?.all?.length,
+      )
+      const proxyGroupCount = allGroupNames.filter((name) => !isNodeGroup(name)).length
+      const nodeGroupCount = nodeGroupBuckets.value.length
       return Object.values(PROXY_TAB_TYPE).map((type) => {
         return {
           type,
           count:
             type === PROXY_TAB_TYPE.PROXIES
-              ? proxyGroupList.value.length
-              : proxyProviederList.value.length,
+              ? proxyGroupCount
+              : type === PROXY_TAB_TYPE.NODE_GROUPS
+                ? nodeGroupCount
+                : proxyProviederList.value.length,
         }
       })
     })
@@ -209,7 +217,7 @@ export default defineComponent({
           class={[
             'btn btn-circle btn-sm',
             twoColumnProxyGroup.value &&
-              proxiesTabShow.value === PROXY_TAB_TYPE.PROXIES &&
+              proxiesTabShow.value === PROXY_TAB_TYPE.NODE_GROUPS &&
               'max-sm:hidden',
           ]}
           onClick={handlerClickToggleCollapse}

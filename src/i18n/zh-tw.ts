@@ -4,7 +4,7 @@ const zhTW: LANG_MESSAGE = {
   // Navigation
   setup: '配置',
   overview: '概覽',
-  proxies: '代理',
+  proxies: '策略組',
   rules: '規則',
   connections: '連接',
   logs: '日誌',
@@ -68,6 +68,7 @@ const zhTW: LANG_MESSAGE = {
   defaultTheme: '預設主題',
   darkTheme: '深色主題',
   proxyProvider: '代理提供商',
+  nodeGroups: '節點組',
   ruleProvider: '規則提供商',
   expire: '到期時間',
   noExpire: '不限時',
