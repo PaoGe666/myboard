@@ -70,6 +70,7 @@ export type ProxyProvider = {
   testUrl: string
   updatedAt: string
   vehicleType: string
+  disabled?: boolean
 }
 
 export type Rule = {

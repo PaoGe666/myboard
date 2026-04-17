@@ -259,6 +259,13 @@ export const groupTestUrls = useStorage<
   }[]
 >('config/group-test-urls', [])
 
+// 订阅启用状态映射，key 为 provider name，value 为 true 表示启用，false 表示禁用
+// 默认所有订阅都启用（不存在于 map 中或值为 true）
+export const providerEnabledMap = useStorage<Record<string, boolean>>(
+  'config/provider-enabled-map',
+  {}
+)
+
 // connections
 export const connectionDisplayStyle = useStorage<CONNECTION_DISPLAY_STYLE>(
   'config/connection-display-style',
@@ -316,7 +323,7 @@ export const logSearchHistory = useStorage<string[]>('config/log-search-history'
 // 默认所有项都可见，只有隐藏的项才会记录在此对象中
 export const hiddenSettingsItems = useStorage<Record<string, boolean>>(
   'config/hidden-settings-items',
-  {},
+  {}
 )
 
 // settings menu order

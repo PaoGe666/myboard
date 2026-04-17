@@ -1,7 +1,7 @@
 import { NOT_CONNECTED, PROXY_SORT_TYPE } from '@/constant'
 import { isProxyGroup } from '@/helper'
-import { getLatencyByName, proxiesFilter } from '@/store/proxies'
-import { hideUnavailableProxies, proxySortType, useSmartGroupSort } from '@/store/settings'
+import { getLatencyByName, proxiesFilter, proxyProviederList } from '@/store/proxies'
+import { hideUnavailableProxies, proxySortType, providerEnabledMap, useSmartGroupSort } from '@/store/settings'
 import { smartOrderMap } from '@/store/smart'
 import { computed, type ComputedRef } from 'vue'
 
@@ -33,6 +33,14 @@ const getRenderProxies = (proxies: string[], groupName?: string) => {
   proxies = [...proxies]
   proxies.forEach((name) => {
     latencyMap.set(name, getLatencyByName(name, groupName))
+  })
+
+  // Filter out proxies from disabled providers
+  proxies = proxies.filter((name) => {
+    if (isProxyGroup(name)) return true
+    const proxy = proxyProviederList.value.find(p => p.proxies.some(pp => pp.name === name))
+    if (!proxy) return true
+    return providerEnabledMap.value[proxy.name] !== false
   })
 
   if (hideUnavailableProxies.value) {

@@ -328,6 +328,7 @@ const zhTW: LANG_MESSAGE = {
   RarelyUsed: '很少使用',
   OccasionalUsed: '偶爾使用',
   MostUsed: '經常使用',
+  enabled: '啟用',
 }
 
 export default zhTW
