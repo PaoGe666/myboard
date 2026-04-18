@@ -38,6 +38,8 @@ docker run -d --name myboard -p 8080:80 myboard:latest
 
 然后访问 `http://your-ip:8080`
 
+这里的 `8080` 是面板网页的访问端口，不是 Mihomo / Clash API 端口。
+
 ### 方式二：源码构建
 
 ```bash
@@ -93,6 +95,11 @@ pnpm build
 ```
 http://your-ip:port/#/setup?hostname=你的IP&port=9090&secret=你的密码
 ```
+
+说明：
+- `http://your-ip:8080` 中的 `8080` 是面板访问端口
+- URL 参数里的 `port=9090` 是 Mihomo / Clash API 默认控制端口
+- 两个端口用途不同，可以分别修改
 
 参数说明：
 - `hostname` - Clash API 的 IP 或域名
