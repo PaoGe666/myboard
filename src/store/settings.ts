@@ -242,6 +242,7 @@ export const customGlobalNode = useStorage('config/custom-global-node-name', GLO
 
 export const proxyGroupIconSize = useStorage('config/proxy-group-icon-size', 24)
 export const proxyGroupIconMargin = useStorage('config/proxy-group-icon-margin', 6)
+export const preferBrandSvgIcon = useStorage('config/prefer-brand-svg-icon', true)
 export const iconReflectList = useStorage<
   {
     icon: string
@@ -263,7 +264,7 @@ export const groupTestUrls = useStorage<
 // 默认所有订阅都启用（不存在于 map 中或值为 true）
 export const providerEnabledMap = useStorage<Record<string, boolean>>(
   'config/provider-enabled-map',
-  {}
+  {},
 )
 
 // connections
@@ -323,7 +324,7 @@ export const logSearchHistory = useStorage<string[]>('config/log-search-history'
 // 默认所有项都可见，只有隐藏的项才会记录在此对象中
 export const hiddenSettingsItems = useStorage<Record<string, boolean>>(
   'config/hidden-settings-items',
-  {}
+  {},
 )
 
 // settings menu order

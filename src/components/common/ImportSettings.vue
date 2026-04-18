@@ -103,20 +103,49 @@ const importDialogShow = ref(false)
 
 const { showTip } = useTooltip()
 
+const showImportFileFailed = (fileName = '') => {
+  showNotification({
+    content: 'importFileFailed',
+    params: { name: fileName || 'unknown.json' },
+    type: 'alert-error',
+  })
+}
+
 const handlerJsonUpload = () => {
+  const file = inputRef.value?.files?.[0]
+  if (!file) return
+
   showNotification({
     content: 'importing',
   })
-  const file = inputRef.value?.files?.[0]
-  if (!file) return
-  const reader = new FileReader()
-  reader.onload = async () => {
-    const settings = JSON.parse(reader.result as string)
 
-    for (const key in settings) {
-      localStorage.setItem(key, settings[key])
+  const reader = new FileReader()
+
+  reader.onerror = () => {
+    showImportFileFailed(file.name)
+    if (inputRef.value) {
+      inputRef.value.value = ''
     }
-    location.reload()
+  }
+
+  reader.onload = async () => {
+    try {
+      const settings = JSON.parse(reader.result as string) as Record<string, string>
+
+      if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+        throw new Error('Invalid settings format')
+      }
+
+      for (const key in settings) {
+        localStorage.setItem(key, settings[key])
+      }
+      location.reload()
+    } catch {
+      showImportFileFailed(file.name)
+      if (inputRef.value) {
+        inputRef.value.value = ''
+      }
+    }
   }
   reader.readAsText(file)
 }

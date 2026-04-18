@@ -161,6 +161,7 @@ const zhTW: LANG_MESSAGE = {
   transparent: '透明度',
   proxyGroupIconSize: '策略組圖示尺寸',
   proxyGroupIconMargin: '策略組圖示間距',
+  preferBrandSvgIcon: '優先使用品牌 SVG 圖示來源',
   allowLan: '允許區域網路',
   proxyChainDirection: '代理鏈方向',
   showFullProxyChain: '完整顯示代理鏈',
@@ -194,6 +195,8 @@ const zhTW: LANG_MESSAGE = {
   hideLogRegex: '隱藏日誌正則',
   hideLogTip: '可通過不區分大小寫的正則表達式來匹配並隱藏不需要看到的日誌',
   loadBalance: '負載均衡',
+  noAvailableProxy: '無可用節點',
+  unavailableGroupCount: '{count} 組異常',
   label: '標籤',
   optional: '可選',
   swipeInTabs: '滑動切換頁面二級標籤',
@@ -268,6 +271,7 @@ const zhTW: LANG_MESSAGE = {
   importFromBackendTip:
     '預設的./zashboard-settings.json位於ui資料夾下，匯入前請確保ui資料夾下存在配置檔案。',
   importFailed: '匯入失敗，請檢查url {url}',
+  importFileFailed: '匯入失敗，請檢查檔案：{name}',
   autoImportFromUrl: '自動匯入',
   autoImportFromUrlTip:
     '啟用後，每次開啟zashboard時會自動從url設定匯入並計算hash，如果hash與上次匯入的hash不同，則重新匯入並重新整理頁面。',

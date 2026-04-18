@@ -224,6 +224,19 @@
             v-model="proxyGroupIconMargin"
           />
         </div>
+        <div
+          v-if="isVisiblePreferBrandSvgIcon"
+          class="setting-item"
+        >
+          <div class="setting-item-label">
+            {{ $t('preferBrandSvgIcon') }}
+          </div>
+          <input
+            class="toggle"
+            type="checkbox"
+            v-model="preferBrandSvgIcon"
+          />
+        </div>
         <IconSettings v-if="isVisibleIconSettings" />
       </div>
     </template>
@@ -246,6 +259,7 @@ import {
   lowLatency,
   mediumLatency,
   minProxyCardWidth,
+  preferBrandSvgIcon,
   proxyCardSize,
   proxyGroupIconMargin,
   proxyGroupIconSize,
@@ -278,6 +292,7 @@ const isVisibleProxyPreviewType = useIsSettingVisible(k.proxyPreviewType)
 const isVisibleProxyCardSize = useIsSettingVisible(k.proxyCardSize)
 const isVisibleProxyGroupIconSize = useIsSettingVisible(k.proxyGroupIconSize)
 const isVisibleProxyGroupIconMargin = useIsSettingVisible(k.proxyGroupIconMargin)
+const isVisiblePreferBrandSvgIcon = useIsSettingVisible(k.preferBrandSvgIcon)
 const isVisibleIconSettings = useIsSettingVisible(k.icon)
 
 const { showTip } = useTooltip()
@@ -311,7 +326,9 @@ const hasVisibleProxyStyleItems = computed(() => {
     isVisibleProxyPreviewType.value ||
     isVisibleProxyCardSize.value ||
     isVisibleProxyGroupIconSize.value ||
-    isVisibleProxyGroupIconMargin.value
+    isVisibleProxyGroupIconMargin.value ||
+    isVisiblePreferBrandSvgIcon.value ||
+    isVisibleIconSettings.value
   )
 })
 </script>

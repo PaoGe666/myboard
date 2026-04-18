@@ -162,6 +162,7 @@ const ru: LANG_MESSAGE = {
   transparent: 'Прозрачность',
   proxyGroupIconSize: 'Размер иконки группы прокси',
   proxyGroupIconMargin: 'Отступ иконки группы прокси',
+  preferBrandSvgIcon: 'Предпочитать брендовые SVG-иконки',
   allowLan: 'Разрешить локальную сеть',
   proxyChainDirection: 'Направление цепочки прокси',
   showFullProxyChain: 'Показать полную цепочку прокси',
@@ -198,6 +199,8 @@ const ru: LANG_MESSAGE = {
   hideLogTip:
     'Используйте регистронезависимое регулярное выражение, чтобы найти и скрыть нежелательные записи журнала.',
   loadBalance: 'Балансировка нагрузки',
+  noAvailableProxy: 'Нет доступных узлов',
+  unavailableGroupCount: 'Проблемных групп: {count}',
   label: 'Метка',
   optional: 'Необязательно',
   swipeInTabs: 'Провести для переключения вкладок',
@@ -275,6 +278,7 @@ const ru: LANG_MESSAGE = {
   importFromBackendTip:
     'По умолчанию ./zashboard-settings.json находится в папке ui. Пожалуйста, убедитесь, что папка ui существует и содержит файл конфигурации.',
   importFailed: 'Импорт не выполнен, проверьте url {url}',
+  importFileFailed: 'Импорт не выполнен, проверьте файл: {name}',
   autoImportFromUrl: 'Автоматический импорт',
   autoImportFromUrlTip:
     'При включении настройки будут автоматически импортироваться из url при открытии zashboard. Если хэш отличается от последнего импортированного хэша, настройки будут импортированы заново и страница будет обновлена.',

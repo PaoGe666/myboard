@@ -29,6 +29,7 @@
               <span
                 >"<ProxyIcon
                   :icon="proxyMap[node.content].icon"
+                  :name="node.content"
                   class="inline-block"
                   :margin="0"
                 />

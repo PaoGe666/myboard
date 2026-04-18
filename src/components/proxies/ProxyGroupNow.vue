@@ -1,13 +1,13 @@
 <template>
   <div class="flex flex-1 items-center gap-1 truncate">
-    <template v-if="proxyGroup.now">
+    <template v-if="currentProxyName">
       <Component
         class="h-4 w-4 shrink-0 outline-none"
         :is="isFixed ? LockClosedIcon : ArrowRightCircleIcon"
         @mouseenter="tipForFixed"
       />
       <ProxyName
-        :name="proxyGroup.now"
+        :name="currentProxyName"
         :class="
           isNowAGroup && 'hover:bg-base-300 hover:-mx-1 hover:rounded-lg hover:px-1 hover:shadow'
         "
@@ -28,6 +28,12 @@
         {{ $t('loadBalance') }}
       </span>
     </template>
+    <template v-else>
+      <ExclamationTriangleIcon class="text-warning h-4 w-4 shrink-0" />
+      <span class="text-base-content/70 text-xs md:text-sm">
+        {{ $t('noAvailableProxy') }}
+      </span>
+    </template>
   </div>
 </template>
 
@@ -35,9 +41,14 @@
 import { PROXY_TYPE } from '@/constant'
 import { useTooltip } from '@/helper/tooltip'
 import { scrollToGroup } from '@/helper/utils'
-import { getNowProxyNodeName, proxyGroupList, proxyMap } from '@/store/proxies'
+import { getCurrentProxyName, getNowProxyNodeName, proxyGroupList, proxyMap } from '@/store/proxies'
 import { displayFinalOutbound } from '@/store/settings'
-import { ArrowRightCircleIcon, CheckCircleIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
+import {
+  ArrowRightCircleIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  LockClosedIcon,
+} from '@heroicons/vue/24/outline'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProxyName from './ProxyName.vue'
@@ -49,9 +60,10 @@ const props = defineProps<{
 const proxyGroup = computed(() => proxyMap.value[props.name])
 const { showTip } = useTooltip()
 const { t } = useI18n()
+const currentProxyName = computed(() => getCurrentProxyName(props.name))
 
 const isFixed = computed(() => {
-  return proxyGroup.value.fixed === proxyGroup.value.now
+  return proxyGroup.value.fixed === currentProxyName.value
 })
 
 const tipForFixed = (e: Event) => {
@@ -65,13 +77,13 @@ const tipForFixed = (e: Event) => {
 }
 
 const isNowAGroup = computed(() => {
-  return proxyGroupList.value.includes(proxyGroup.value.now)
+  return proxyGroupList.value.includes(currentProxyName.value)
 })
 
 const finalOutbound = computed(() => {
-  const now = getNowProxyNodeName(proxyGroup.value.now)
+  const now = getNowProxyNodeName(props.name)
 
-  if (now === proxyGroup.value.now) {
+  if (!currentProxyName.value || now === currentProxyName.value) {
     return ''
   }
 
@@ -81,7 +93,7 @@ const finalOutbound = computed(() => {
 const handlerClickNow = (e: Event) => {
   if (isNowAGroup.value) {
     e.stopPropagation()
-    scrollToGroup(proxyGroup.value.now)
+    scrollToGroup(currentProxyName.value)
   }
 }
 </script>

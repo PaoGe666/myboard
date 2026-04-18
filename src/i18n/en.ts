@@ -160,6 +160,7 @@ const en = {
   transparent: 'Transparency',
   proxyGroupIconSize: 'Proxy group icon size',
   proxyGroupIconMargin: 'Proxy group icon margin',
+  preferBrandSvgIcon: 'Prefer brand SVG icon source',
   allowLan: 'Allow LAN',
   proxyChainDirection: 'Proxy chain direction',
   showFullProxyChain: 'Show full proxy chain',
@@ -195,6 +196,8 @@ const en = {
   hideLogRegex: 'Hide log regex',
   hideLogTip: 'You can use case-insensitive regular expressions to match and hide unwanted logs.',
   loadBalance: 'Load balancing',
+  noAvailableProxy: 'No available proxy',
+  unavailableGroupCount: '{count} groups affected',
   label: 'Label',
   optional: 'Optional',
   swipeInTabs: 'Swipe to switch between tabs',
@@ -273,6 +276,7 @@ const en = {
   importFromBackendTip:
     'The default ./zashboard-settings.json is located in the ui folder. Please ensure the ui folder exists and contains the configuration file.',
   importFailed: 'Import failed, please check the URL: {url}',
+  importFileFailed: 'Import failed, please check the file: {name}',
   autoImportFromUrl: 'Auto-import',
   autoImportFromUrlTip:
     'When enabled, settings will be automatically imported from the URL when opening zashboard. If the hash differs from the last imported hash, settings will be re-imported and the page will be refreshed.',

@@ -9,6 +9,7 @@ import { activeConnections } from '@/store/connections'
 import {
   allProxiesLatencyTest,
   fetchProxies,
+  getCurrentProxyName,
   hasSmartGroup,
   proxiesFilter,
   proxiesTabShow,
@@ -24,6 +25,7 @@ import {
   hideUnavailableProxies,
   manageHiddenGroup,
   minProxyCardWidth,
+  preferBrandSvgIcon,
   proxyCardSize,
   proxySortType,
   twoColumnProxyGroup,
@@ -34,6 +36,7 @@ import {
   BoltIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  ExclamationTriangleIcon,
   WrenchScrewdriverIcon,
 } from '@heroicons/vue/24/outline'
 import { every } from 'lodash'
@@ -122,7 +125,13 @@ export default defineComponent({
         (name) => proxyMap.value[name]?.all?.length,
       )
       const proxyGroupCount = allGroupNames.filter((name) => !isNodeGroup(name)).length
+      const unavailableProxyGroupCount = allGroupNames.filter(
+        (name) => !isNodeGroup(name) && !getCurrentProxyName(name),
+      ).length
       const nodeGroupCount = nodeGroupBuckets.value.length
+      const unavailableNodeGroupCount = nodeGroupBuckets.value.filter(({ groups }) =>
+        groups.some((groupName) => !getCurrentProxyName(groupName)),
+      ).length
       return Object.values(PROXY_TAB_TYPE).map((type) => {
         return {
           type,
@@ -132,6 +141,12 @@ export default defineComponent({
               : type === PROXY_TAB_TYPE.NODE_GROUPS
                 ? nodeGroupCount
                 : proxyProviederList.value.length,
+          warningCount:
+            type === PROXY_TAB_TYPE.PROXIES
+              ? unavailableProxyGroupCount
+              : type === PROXY_TAB_TYPE.NODE_GROUPS
+                ? unavailableNodeGroupCount
+                : 0,
         }
       })
     })
@@ -141,15 +156,25 @@ export default defineComponent({
           role="tablist"
           class="tabs-box tabs tabs-xs"
         >
-          {tabsWithNumbers.value.map(({ type, count }) => {
+          {tabsWithNumbers.value.map(({ type, count, warningCount }) => {
             return (
               <a
                 role="tab"
                 key={type}
-                class={['tab', proxiesTabShow.value === type && 'tab-active']}
+                class={[
+                  'tab gap-1',
+                  proxiesTabShow.value === type && 'tab-active',
+                  warningCount > 0 && 'text-warning',
+                ]}
                 onClick={() => (proxiesTabShow.value = type)}
               >
                 {t(type)} ({count})
+                {warningCount > 0 && (
+                  <span class="bg-warning/18 text-warning ml-1 inline-flex items-center gap-0.5 rounded-md px-1 py-0.5 text-[10px] leading-none">
+                    <ExclamationTriangleIcon class="h-3 w-3" />
+                    {warningCount}
+                  </span>
+                )}
               </a>
             )
           })}
@@ -304,6 +329,14 @@ export default defineComponent({
                   class="toggle"
                   type="checkbox"
                   v-model={displayFinalOutbound.value}
+                />
+              </div>
+              <div class="flex items-center gap-2">
+                {t('preferBrandSvgIcon')}
+                <input
+                  class="toggle"
+                  type="checkbox"
+                  v-model={preferBrandSvgIcon.value}
                 />
               </div>
               <div class="flex items-center gap-2">

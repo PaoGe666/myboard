@@ -20,14 +20,22 @@ const calculateSettingsHash = async (settings: Record<string, unknown>) => {
   return Math.abs(hash).toString(16).padStart(8, '0')
 }
 export const importSettingsFromUrl = async (force = false) => {
-  const res = await fetch(importSettingsUrl.value)
+  let res: Response | null = null
   const errorHandler = () => {
     showNotification({
       content: 'importFailed',
-      params: { url: res.url },
+      params: { url: res?.url || importSettingsUrl.value },
       type: 'alert-error',
     })
   }
+
+  try {
+    res = await fetch(importSettingsUrl.value)
+  } catch {
+    errorHandler()
+    return
+  }
+
   if (!res.ok) {
     errorHandler()
     return

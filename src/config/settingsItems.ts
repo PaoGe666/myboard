@@ -150,6 +150,10 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
         key: `${SETTINGS_MENU_KEY.proxies}.proxyGroupIconMargin`,
         label: 'proxyGroupIconMargin',
       },
+      {
+        key: `${SETTINGS_MENU_KEY.proxies}.preferBrandSvgIcon`,
+        label: 'preferBrandSvgIcon',
+      },
       { key: `${SETTINGS_MENU_KEY.proxies}.iconSettings`, label: 'icon' },
     ],
   },

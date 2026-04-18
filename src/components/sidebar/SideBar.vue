@@ -16,7 +16,7 @@
             :class="[
               r === route.name ? 'menu-active' : '',
               isSidebarCollapsed && 'justify-center',
-              'py-2',
+              'relative py-2',
             ]"
             @click.passive="() => router.push({ name: r })"
           >
@@ -24,8 +24,18 @@
               :is="ROUTE_ICON_MAP[r]"
               class="h-5 w-5"
             />
+            <span
+              v-if="isSidebarCollapsed && r === ROUTE_NAME.proxies && proxiesWarningCount > 0"
+              class="bg-warning absolute top-1 right-2 h-2.5 w-2.5 rounded-full"
+            />
             <template v-if="!isSidebarCollapsed">
               {{ $t(r) }}
+              <span
+                v-if="r === ROUTE_NAME.proxies && proxiesWarningCount > 0"
+                class="bg-warning/18 text-warning ml-auto inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+              >
+                {{ proxiesWarningCount }}
+              </span>
             </template>
           </a>
         </li>
@@ -49,13 +59,15 @@
 
 <script setup lang="ts">
 import CommonSidebar from '@/components/sidebar/CommonCtrl.vue'
-import { ROUTE_ICON_MAP } from '@/constant'
-import { renderRoutes } from '@/helper'
+import { nodeGroupBuckets } from '@/composables/proxies'
+import { ROUTE_ICON_MAP, ROUTE_NAME } from '@/constant'
+import { isNodeGroup, renderRoutes } from '@/helper'
 import { useTooltip } from '@/helper/tooltip'
 import router from '@/router'
+import { getCurrentProxyName, proxyMap } from '@/store/proxies'
 import { isSidebarCollapsed, showStatisticsWhenSidebarCollapsed } from '@/store/settings'
 import { twMerge } from 'tailwind-merge'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import OverviewCarousel from './OverviewCarousel.vue'
@@ -78,6 +90,19 @@ const mouseenterHandler = (e: MouseEvent, r: string) => {
 }
 
 const route = useRoute()
+const proxiesWarningCount = computed(() => {
+  const allGroupNames = Object.keys(proxyMap.value).filter(
+    (name) => proxyMap.value[name]?.all?.length,
+  )
+  const unavailableProxyGroupCount = allGroupNames.filter(
+    (name) => !isNodeGroup(name) && !getCurrentProxyName(name),
+  ).length
+  const unavailableNodeGroupCount = nodeGroupBuckets.value.filter(({ groups }) =>
+    groups.some((groupName) => !getCurrentProxyName(groupName)),
+  ).length
+
+  return unavailableProxyGroupCount + unavailableNodeGroupCount
+})
 
 const handleTransitionEnd = (e: TransitionEvent) => {
   if (e.target !== sidebarRef.value || e.propertyName !== 'width') return

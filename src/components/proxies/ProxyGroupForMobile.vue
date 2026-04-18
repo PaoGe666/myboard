@@ -11,7 +11,12 @@
     />
     <div
       class="base-container absolute flex flex-col overflow-hidden transition-[width,transform,max-height] duration-200 ease-out will-change-transform"
-      :class="modalMode && blurIntensity < 5 && 'backdrop-blur-sm!'"
+      :class="
+        twMerge(
+          modalMode && blurIntensity < 5 && 'backdrop-blur-sm!',
+          hasNoAvailableProxy && 'ring-warning/40 bg-warning/6 ring-1',
+        )
+      "
       :style="cardStyle"
       @contextmenu.prevent.stop="handlerLatencyTest"
       @transitionend="handlerTransitionEnd"
@@ -20,15 +25,19 @@
       <div class="relative flex h-22 shrink-0 flex-col justify-between p-2">
         <div
           class="text-md truncate"
-          :class="proxyGroup.icon && 'pr-10'"
+          :class="displayGroupIcon && 'pr-10'"
         >
           {{ proxyGroup.name }}
         </div>
         <div
-          class="text-base-content/60 truncate text-xs"
-          :class="proxyGroup.icon && 'pr-10'"
+          class="truncate text-xs"
+          :class="[
+            displayGroupIcon && 'pr-10',
+            hasNoAvailableProxy ? 'text-warning' : 'text-base-content/60',
+          ]"
         >
           {{ proxyGroup.type }} · {{ proxiesCount }}
+          <span v-if="hasNoAvailableProxy"> · {{ $t('noAvailableProxy') }}</span>
         </div>
         <div class="flex items-center">
           <div class="flex flex-1 items-center gap-1 truncate">
@@ -54,14 +63,15 @@
           <LatencyTag
             :class="twMerge('bg-base-200/50 hover:bg-base-200 z-10')"
             :loading="isLatencyTesting"
-            :name="proxyGroup.now"
+            :name="currentProxyName"
             :group-name="proxyGroup.name"
             @click.stop="handlerLatencyTest"
           />
         </div>
         <ProxyIcon
-          v-if="proxyGroup?.icon"
-          :icon="proxyGroup.icon"
+          v-if="displayGroupIcon"
+          :icon="rawGroupIcon"
+          :name="proxyGroup.name"
           :size="40"
           :margin="0"
           class="absolute top-2 right-2"
@@ -81,7 +91,7 @@
         <Component
           :is="groupProxiesByProvider ? ProxiesByProvider : ProxiesContent"
           :name="name"
-          :now="proxyGroup.now"
+          :now="currentProxyName"
           :render-proxies="renderProxies"
         />
       </div>
@@ -94,9 +104,20 @@ import { useBounceOnVisible } from '@/composables/bouncein'
 import { disableProxiesPageScroll } from '@/composables/proxies'
 import { useRenderProxies } from '@/composables/renderProxies'
 import { isHiddenGroup } from '@/helper'
+import { getPreferredProxyIcon } from '@/helper/proxyIcon'
 import { PROXIES_PARENT_CLASS } from '@/helper/utils'
-import { hiddenGroupMap, proxyGroupLatencyTest, proxyMap } from '@/store/proxies'
-import { blurIntensity, groupProxiesByProvider, manageHiddenGroup } from '@/store/settings'
+import {
+  getCurrentProxyName,
+  hiddenGroupMap,
+  proxyGroupLatencyTest,
+  proxyMap,
+} from '@/store/proxies'
+import {
+  blurIntensity,
+  groupProxiesByProvider,
+  manageHiddenGroup,
+  preferBrandSvgIcon,
+} from '@/store/settings'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { twMerge } from 'tailwind-merge'
 import { computed, nextTick, ref } from 'vue'
@@ -113,6 +134,16 @@ const props = defineProps<{
 const proxyGroup = computed(() => proxyMap.value[props.name])
 const allProxies = computed(() => proxyGroup.value.all ?? [])
 const { proxiesCount, renderProxies } = useRenderProxies(allProxies, props.name)
+const currentProxyName = computed(() => getCurrentProxyName(props.name))
+const hasNoAvailableProxy = computed(() => !currentProxyName.value)
+const rawGroupIcon = computed(() => proxyGroup.value?.icon || '')
+const displayGroupIcon = computed(() =>
+  getPreferredProxyIcon(
+    proxyGroup.value?.name || props.name,
+    rawGroupIcon.value,
+    preferBrandSvgIcon.value,
+  ),
+)
 const isLatencyTesting = ref(false)
 
 const modalMode = ref(false)

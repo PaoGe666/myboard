@@ -6,20 +6,24 @@
     v-html="pureDom"
   />
   <img
-    v-else
+    v-else-if="resolvedIcon"
     class="inline-block"
     :style="style"
-    :src="icon"
+    :src="resolvedIcon"
+    @error="handleImageError"
   />
 </template>
 
 <script setup lang="ts">
+import { getFallbackProxyIcon, getPreferredProxyIcon } from '@/helper/proxyIcon'
+import { preferBrandSvgIcon } from '@/store/settings'
 import DOMPurify from 'dompurify'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
     icon: string
+    name?: string
     fill?: string
     size?: number
     margin?: number
@@ -38,12 +42,48 @@ const style = computed(() => {
   }
 })
 const DOM_STARTS_WITH = 'data:image/svg+xml,'
+const resolvedIcon = ref(props.icon)
+
+watch(
+  () => [props.icon, props.name, preferBrandSvgIcon.value],
+  () => {
+    resolvedIcon.value = getPreferredProxyIcon(
+      props.name || '',
+      props.icon,
+      preferBrandSvgIcon.value,
+    )
+  },
+  { immediate: true },
+)
+
 const isDom = computed(() => {
-  return props.icon.startsWith(DOM_STARTS_WITH)
+  return resolvedIcon.value.startsWith(DOM_STARTS_WITH)
 })
 
 const pureDom = computed(() => {
   if (!isDom.value) return
-  return DOMPurify.sanitize(props.icon.replace(DOM_STARTS_WITH, ''))
+  return DOMPurify.sanitize(resolvedIcon.value.replace(DOM_STARTS_WITH, ''))
 })
+
+const handleImageError = () => {
+  if (!preferBrandSvgIcon.value) {
+    resolvedIcon.value = ''
+    return
+  }
+
+  const fallbackIcon = getFallbackProxyIcon(props.name || '')
+  const originalIcon = props.icon || ''
+
+  if (fallbackIcon && fallbackIcon !== resolvedIcon.value) {
+    resolvedIcon.value = fallbackIcon
+    return
+  }
+
+  if (originalIcon && originalIcon !== resolvedIcon.value) {
+    resolvedIcon.value = originalIcon
+    return
+  }
+
+  resolvedIcon.value = ''
+}
 </script>

@@ -34,7 +34,7 @@ export const exportSettings = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'zashboard-settings'
+  a.download = 'zashboard-settings.json'
   a.click()
   URL.revokeObjectURL(url)
 }

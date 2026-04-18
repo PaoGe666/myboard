@@ -30,6 +30,7 @@ import {
   iconReflectList,
   independentLatencyTest,
   IPv6test,
+  providerEnabledMap,
   speedtestTimeout,
   speedtestUrl,
 } from './settings'
@@ -63,6 +64,69 @@ export const getTestUrl = (groupName?: string) => {
     proxyMap.value[groupName] || proxyProviederList.value.find((p) => p.name === groupName)
 
   return proxyNode?.testUrl || speedtestUrlWithDefault.value
+}
+
+export const getProxyProviderName = (proxyName: string) => {
+  const proxyNode = proxyMap.value[proxyName]
+
+  if (proxyNode?.['provider-name']) {
+    return proxyNode['provider-name']
+  }
+
+  return proxyProviederList.value.find((provider) =>
+    provider.proxies.some((proxy) => proxy.name === proxyName),
+  )?.name
+}
+
+export const isProxyEnabled = (proxyName: string, visited = new Set<string>()): boolean => {
+  if (!proxyName) {
+    return false
+  }
+
+  if (visited.has(proxyName)) {
+    return false
+  }
+
+  visited.add(proxyName)
+
+  const providerName = getProxyProviderName(proxyName)
+  if (providerName) {
+    return providerEnabledMap.value[providerName] !== false
+  }
+
+  const proxyNode = proxyMap.value[proxyName]
+  if (!proxyNode?.all?.length) {
+    return true
+  }
+
+  return proxyNode.all.some(
+    (child) => child !== proxyName && isProxyEnabled(child, new Set(visited)),
+  )
+}
+
+const getEnabledProxyCandidates = (groupName: string): string[] => {
+  const proxyNode = proxyMap.value[groupName]
+  const all = proxyNode?.all ?? []
+
+  return all.filter((candidate) => candidate !== groupName && isProxyEnabled(candidate))
+}
+
+export const getCurrentProxyName = (name: string) => {
+  const proxyNode = proxyMap.value[name]
+
+  if (!proxyNode) {
+    return name
+  }
+
+  if (!proxyNode.now || proxyNode.now === proxyNode.name) {
+    return isProxyEnabled(proxyNode.name) ? proxyNode.name : ''
+  }
+
+  if (isProxyEnabled(proxyNode.now)) {
+    return proxyNode.now
+  }
+
+  return getEnabledProxyCandidates(proxyNode.name)[0] || ''
 }
 
 export const getLatencyByName = (proxyName: string, groupName?: string) => {
@@ -258,6 +322,7 @@ const testLatencyOneByOneWithTip = async (
   nodes: string[],
   url = speedtestUrlWithDefault.value,
 ) => {
+  nodes = nodes.filter((name) => isProxyEnabled(name))
   const total = nodes.length
   let testDone = 0
   let testFailed = 0
@@ -305,7 +370,7 @@ const testLatencyOneByOneWithTip = async (
 
 export const proxyGroupLatencyTest = async (proxyGroupName: string) => {
   const proxyNode = proxyMap.value[proxyGroupName]
-  const all = proxyNode.all ?? []
+  const all = getEnabledProxyCandidates(proxyGroupName)
   const url = getTestUrl(proxyGroupName)
 
   if (
@@ -373,7 +438,9 @@ export const allProxiesLatencyTest = async () => {
     )
   }
 
-  const proxyNode = Object.keys(proxyMap.value).filter((proxy) => !isProxyGroup(proxy))
+  const proxyNode = Object.keys(proxyMap.value).filter(
+    (proxy) => !isProxyGroup(proxy) && isProxyEnabled(proxy),
+  )
 
   return testLatencyOneByOneWithTip('all', proxyNode)
 }
@@ -390,13 +457,29 @@ const getIPv6FromExtra = (proxy: Proxy) => {
 
 export const getNowProxyNodeName = (name: string) => {
   let node = proxyMap.value[name]
+  const visited = new Set<string>()
 
   if (!name || !node) {
     return name
   }
 
+  if (!isProxyEnabled(name)) {
+    return ''
+  }
+
   while (node.now && node.now !== node.name) {
-    const nextNode = proxyMap.value[node.now]
+    if (visited.has(node.name)) {
+      return node.name
+    }
+    visited.add(node.name)
+
+    const nextName = getCurrentProxyName(node.name)
+
+    if (!nextName) {
+      return node.name
+    }
+
+    const nextNode = proxyMap.value[nextName]
 
     if (!nextNode) {
       return node.name
@@ -410,6 +493,7 @@ export const getNowProxyNodeName = (name: string) => {
 
 export const getProxyGroupChains = (name: string) => {
   let proxyNode = proxyMap.value[name]
+  const visited = new Set<string>()
 
   if (!proxyNode) {
     return []
@@ -420,12 +504,60 @@ export const getProxyGroupChains = (name: string) => {
   while (
     proxyNode.now &&
     proxyNode.now !== proxyNode.name &&
-    proxyGroupList.value.includes(proxyNode.now)
+    proxyGroupList.value.includes(getCurrentProxyName(proxyNode.name))
   ) {
-    result.push(proxyNode.now)
-    proxyNode = proxyMap.value[proxyNode.now]
+    if (visited.has(proxyNode.name)) {
+      break
+    }
+    visited.add(proxyNode.name)
+
+    const nextName = getCurrentProxyName(proxyNode.name)
+
+    if (!nextName || !proxyGroupList.value.includes(nextName)) {
+      break
+    }
+
+    result.push(nextName)
+    proxyNode = proxyMap.value[nextName]
+
+    if (!proxyNode) {
+      break
+    }
   }
   return result
+}
+
+export const reconcileDisabledProviderSelections = async () => {
+  const pendingSelections = proxyGroupList.value
+    .map((groupName) => {
+      const proxyNode = proxyMap.value[groupName]
+
+      if (!proxyNode?.now || isProxyEnabled(proxyNode.now)) {
+        return null
+      }
+
+      const replacement = getEnabledProxyCandidates(groupName)[0]
+
+      if (!replacement || replacement === proxyNode.now) {
+        return null
+      }
+
+      return {
+        groupName,
+        replacement,
+      }
+    })
+    .filter((item): item is { groupName: string; replacement: string } => Boolean(item))
+
+  if (!pendingSelections.length) {
+    return
+  }
+
+  await Promise.all(
+    pendingSelections.map(({ groupName, replacement }) => selectProxyAPI(groupName, replacement)),
+  )
+
+  await fetchProxies()
 }
 
 export const hasSmartGroup = computed(() => {

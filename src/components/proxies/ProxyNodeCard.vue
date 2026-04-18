@@ -17,9 +17,10 @@
       @mouseenter="checkTruncation"
     >
       <ProxyIcon
-        v-if="node?.icon"
+        v-if="displayIcon"
         class="-mt-[2px] shrink-0 align-middle"
-        :icon="node.icon"
+        :icon="rawIcon"
+        :name="node.name"
         :fill="active ? 'fill-primary-content' : 'fill-base-content'"
       /><span
         v-if="active"
@@ -52,10 +53,17 @@
 
 <script setup lang="ts">
 import { PROXY_CARD_SIZE, PROXY_SORT_TYPE } from '@/constant'
+import { getPreferredProxyIcon } from '@/helper/proxyIcon'
 import { checkTruncation } from '@/helper/tooltip'
 import { scrollIntoCenter } from '@/helper/utils'
 import { getIPv6ByName, getTestUrl, proxyLatencyTest, proxyMap } from '@/store/proxies'
-import { IPv6test, proxyCardSize, proxySortType, truncateProxyName } from '@/store/settings'
+import {
+  IPv6test,
+  preferBrandSvgIcon,
+  proxyCardSize,
+  proxySortType,
+  truncateProxyName,
+} from '@/store/settings'
 import { smartWeightsMap } from '@/store/smart'
 import { twMerge } from 'tailwind-merge'
 import { computed, onMounted, ref } from 'vue'
@@ -72,6 +80,10 @@ const props = defineProps<{
 
 const cardRef = ref()
 const node = computed(() => proxyMap.value[props.name])
+const rawIcon = computed(() => node.value?.icon || '')
+const displayIcon = computed(() =>
+  getPreferredProxyIcon(node.value?.name || props.name, rawIcon.value, preferBrandSvgIcon.value),
+)
 const isLatencyTesting = ref(false)
 const typeFormatter = (type: string) => {
   type = type.toLowerCase()

@@ -10,7 +10,7 @@
         </div>
         <div class="flex items-center gap-1.5">
           <div class="form-control">
-            <label class="cursor-pointer label gap-1">
+            <label class="label cursor-pointer gap-1">
               <span class="label-text text-xs">{{ $t('enabled') }}</span>
               <input
                 type="checkbox"
@@ -83,7 +83,11 @@ import { proxyProviderHealthCheckAPI, updateProxyProviderAPI } from '@/api'
 import { useBounceOnVisible } from '@/composables/bouncein'
 import { useRenderProxies } from '@/composables/renderProxies'
 import { fromNow, prettyBytesHelper } from '@/helper/utils'
-import { fetchProxies, proxyProviederList } from '@/store/proxies'
+import {
+  fetchProxies,
+  proxyProviederList,
+  reconcileDisabledProviderSelections,
+} from '@/store/proxies'
 import { providerEnabledMap } from '@/store/settings'
 import { ArrowPathIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import dayjs from 'dayjs'
@@ -108,7 +112,7 @@ const isEnabled = computed(() => {
   return providerEnabledMap.value[props.name] !== false
 })
 
-const toggleEnabled = () => {
+const toggleEnabled = async () => {
   const current = providerEnabledMap.value[props.name] !== false
   if (current) {
     // 禁用
@@ -122,8 +126,13 @@ const toggleEnabled = () => {
     delete newMap[props.name]
     providerEnabledMap.value = newMap
   }
-  // 刷新代理列表
-  fetchProxies()
+
+  if (current) {
+    await reconcileDisabledProviderSelections()
+    return
+  }
+
+  await fetchProxies()
 }
 
 const allProxies = computed(() => proxyProvider.value.proxies.map((node) => node.name) ?? [])

@@ -6,7 +6,16 @@
     @contextmenu.prevent.stop="handlerLatencyTest"
   >
     <template v-slot:title>
-      <div class="relative flex items-center gap-2">
+      <div
+        :class="
+          twMerge(
+            'relative flex items-center gap-2',
+            showWarning &&
+              hasNoAvailableProxy &&
+              'bg-warning/8 border-warning/30 -mx-2 rounded-xl border px-2 py-2',
+          )
+        "
+      >
         <div class="flex flex-1 items-center gap-1">
           <ProxyName
             :name="name"
@@ -15,6 +24,12 @@
           />
           <span class="text-base-content/60 text-xs tabular-nums">
             · {{ proxyGroup.type }} · {{ proxiesCount }}
+          </span>
+          <span
+            v-if="showWarning && hasNoAvailableProxy"
+            class="bg-warning/18 text-warning rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+          >
+            {{ $t('noAvailableProxy') }}
           </span>
           <button
             v-if="manageHiddenGroup"
@@ -34,7 +49,7 @@
         <LatencyTag
           :class="twMerge('bg-base-200/50 hover:bg-base-200 z-10')"
           :loading="isLatencyTesting"
-          :name="proxyGroup.now"
+          :name="currentProxyName"
           :group-name="proxyGroup.name"
           @click.stop="handlerLatencyTest"
         />
@@ -51,7 +66,7 @@
     <template v-slot:preview>
       <ProxyPreview
         :nodes="renderProxies"
-        :now="proxyGroup.now"
+        :now="currentProxyName"
         :groupName="proxyGroup.name"
         @nodeclick="handlerProxySelect(name, $event)"
       />
@@ -60,7 +75,7 @@
       <Component
         :is="groupProxiesByProvider ? ProxiesByProvider : ProxiesContent"
         :name="name"
-        :now="proxyGroup.now"
+        :now="currentProxyName"
         :render-proxies="renderProxies"
       />
     </template>
@@ -74,6 +89,7 @@ import { isHiddenGroup } from '@/helper'
 import { prettyBytesHelper } from '@/helper/utils'
 import { activeConnections } from '@/store/connections'
 import {
+  getCurrentProxyName,
   handlerProxySelect,
   hiddenGroupMap,
   proxyGroupLatencyTest,
@@ -99,10 +115,14 @@ import ProxyPreview from './ProxyPreview.vue'
 const props = defineProps<{
   name: string
   forceOpen?: boolean
+  showWarning?: boolean
 }>()
 const proxyGroup = computed(() => proxyMap.value[props.name])
 const allProxies = computed(() => proxyGroup.value.all ?? [])
 const { proxiesCount, renderProxies } = useRenderProxies(allProxies, props.name)
+const currentProxyName = computed(() => getCurrentProxyName(props.name))
+const hasNoAvailableProxy = computed(() => !currentProxyName.value)
+const showWarning = computed(() => props.showWarning !== false)
 const isLatencyTesting = ref(false)
 const handlerLatencyTest = async () => {
   if (isLatencyTesting.value) return
