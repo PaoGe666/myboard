@@ -61,6 +61,31 @@ pnpm preview
 
 仓库已内置 GitHub Pages 工作流，推送到 `main` 后会自动构建并发布 `dist/`。
 
+## 更新命令
+
+后续需要升级到最新版本时，可以直接在现有目录执行更新命令，不需要重新安装。
+
+### Docker 部署更新
+
+```bash
+cd myboard
+git pull
+docker build -t myboard:latest .
+docker rm -f myboard
+docker run -d --name myboard -p 8080:80 myboard:latest
+```
+
+### 源码构建更新
+
+```bash
+cd myboard
+git pull
+pnpm install
+pnpm build
+```
+
+更新完成后，继续使用原来的访问地址即可。
+
 ## 配置使用
 
 部署完成后，访问面板时需要在 URL 中填写 Clash API 的连接信息：
