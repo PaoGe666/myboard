@@ -72,7 +72,7 @@ pnpm preview
 ```bash
 cd myboard
 git pull
-docker build -t myboard:latest .
+docker build --pull --no-cache -t myboard:latest .
 docker rm -f myboard
 docker run -d --name myboard -p 8080:80 myboard:latest
 ```
@@ -87,6 +87,19 @@ pnpm build
 ```
 
 更新完成后，继续使用原来的访问地址即可。
+
+如果已经拉到最新代码、容器也已重建，但网页看起来还是旧版本，请优先检查浏览器缓存。
+
+这个项目启用了 PWA，浏览器可能会继续使用旧的静态资源缓存。遇到“仓库已经更新，但页面没有变化”时，按下面顺序处理：
+
+1. 先执行上面的更新命令，确保容器已经重新构建并启动。
+2. 打开面板页面后按一次强制刷新：
+   - Windows / Linux：`Ctrl + F5` 或 `Ctrl + Shift + R`
+   - macOS：`Cmd + Shift + R`
+3. 如果还是旧页面，清除当前站点缓存或删除浏览器里的站点数据后再打开。
+4. 如果你是以“安装到桌面 / 添加到主屏幕”的 PWA 方式打开，请先关闭旧窗口，再重新打开；必要时卸载旧的 PWA 后重新进入。
+
+如果想快速确认容器里是否已经是新版本，也可以重新构建后查看页面底部或设置中的版本 / commit 信息是否变化。
 
 ## 配置使用
 
