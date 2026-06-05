@@ -156,7 +156,7 @@ export default defineComponent({
       const searchInput = (
         <TextInput
           v-model={connectionFilter.value}
-          placeholder={`${t('search')} | ${t('searchMultiple')}`}
+          placeholder={`${t('search')} | Regex`}
           clearable={true}
           before-close={true}
           class={isLargeCtrlsBar.value ? 'w-32 max-w-80 flex-1' : 'w-full'}

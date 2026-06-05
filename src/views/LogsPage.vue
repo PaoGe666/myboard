@@ -18,18 +18,18 @@
 import VirtualScroller from '@/components/common/VirtualScroller.vue'
 import LogsCtrl from '@/components/controls/LogsCtrl.tsx'
 import LogsCard from '@/components/logs/LogsCard.vue'
+import { toSearchRegex } from '@/helper/search'
 import { logFilter, logFilterEnabled, logFilterRegex, logTypeFilter, logs } from '@/store/logs'
 import type { LogWithSeq } from '@/types'
 import { computed } from 'vue'
 
 const renderLogs = computed(() => {
   let renderLogs = logs.value
+  const searchRegex = toSearchRegex(logFilter.value)
 
   if (logFilter.value || logTypeFilter.value) {
-    const regex = new RegExp(logFilter.value, 'i')
-
     renderLogs = logs.value.filter((log) => {
-      if (logFilter.value && ![log.payload, log.time, log.type].some((i) => regex.test(i))) {
+      if (searchRegex && !searchRegex.testAny([log.payload, log.time, log.type])) {
         return false
       }
 
@@ -45,10 +45,13 @@ const renderLogs = computed(() => {
   }
 
   if (logFilterEnabled.value && logFilterRegex.value) {
-    const hideRegex = new RegExp(logFilterRegex.value, 'i')
-    renderLogs = renderLogs.filter((log) => {
-      return ![log.payload, log.time, log.type].some((i) => hideRegex.test(i))
-    })
+    const hideRegex = toSearchRegex(logFilterRegex.value)
+
+    if (hideRegex) {
+      renderLogs = renderLogs.filter((log) => {
+        return !hideRegex.testAny([log.payload, log.time, log.type])
+      })
+    }
   }
 
   return renderLogs

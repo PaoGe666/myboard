@@ -7,13 +7,19 @@
       :margin="iconMargin"
       :size="iconSize"
     />
-    {{ name }}
+    <HighlightText
+      v-if="filter"
+      :text="name"
+      :filter="filter"
+    />
+    <template v-else>{{ name }}</template>
     <template v-if="dialerProxy"> ({{ dialerProxy }}) </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { getPreferredProxyIcon } from '@/helper/proxyIcon'
+import HighlightText from '@/components/common/HighlightText.vue'
 import { proxyMap } from '@/store/proxies'
 import { preferBrandSvgIcon } from '@/store/settings'
 import { computed } from 'vue'
@@ -24,10 +30,12 @@ const props = withDefaults(
     name: string
     iconSize?: number
     iconMargin?: number
+    filter?: string
   }>(),
   {
     iconSize: 16,
     iconMargin: 4,
+    filter: '',
   },
 )
 

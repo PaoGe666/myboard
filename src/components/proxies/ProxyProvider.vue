@@ -81,7 +81,7 @@
 <script setup lang="ts">
 import { proxyProviderHealthCheckAPI, updateProxyProviderAPI } from '@/api'
 import { useBounceOnVisible } from '@/composables/bouncein'
-import { useRenderProxies } from '@/composables/renderProxies'
+import { useRenderProxyList } from '@/composables/renderProxies'
 import { fromNow, prettyBytesHelper } from '@/helper/utils'
 import {
   fetchProxies,
@@ -136,7 +136,7 @@ const toggleEnabled = async () => {
 }
 
 const allProxies = computed(() => proxyProvider.value.proxies.map((node) => node.name) ?? [])
-const { renderProxies, proxiesCount } = useRenderProxies(allProxies)
+const { renderProxies, proxiesCount } = useRenderProxyList(allProxies)
 
 const subscriptionInfo = computed(() => {
   const info = proxyProvider.value.subscriptionInfo

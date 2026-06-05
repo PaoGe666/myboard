@@ -120,6 +120,7 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
     key: SETTINGS_MENU_KEY.proxies,
     label: 'proxySettings',
     items: [
+      { key: `${SETTINGS_MENU_KEY.proxies}.speedtestMode`, label: 'speedtestMode' },
       { key: `${SETTINGS_MENU_KEY.proxies}.speedtestUrl`, label: 'speedtestUrl' },
       { key: `${SETTINGS_MENU_KEY.proxies}.speedtestTimeout`, label: 'speedtestTimeout' },
       { key: `${SETTINGS_MENU_KEY.proxies}.lowLatency`, label: 'lowLatencyDesc' },
@@ -130,6 +131,10 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
         label: 'independentLatencyTest',
       },
       { key: `${SETTINGS_MENU_KEY.proxies}.groupTestUrls`, label: 'groupTestUrls' },
+      {
+        key: `${SETTINGS_MENU_KEY.proxies}.proxyFolderMode`,
+        label: 'proxyFolderMode',
+      },
       {
         key: `${SETTINGS_MENU_KEY.proxies}.twoColumnProxyGroup`,
         label: 'twoColumnProxyGroup',

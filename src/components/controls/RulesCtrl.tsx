@@ -101,7 +101,7 @@ export default defineComponent({
         <TextInput
           class={isLargeCtrlsBar.value ? 'w-80' : 'w-32 flex-1'}
           v-model={rulesFilter.value}
-          placeholder={`${t('search')} | ${t('searchMultiple')}`}
+          placeholder={`${t('search')} | Regex`}
           clearable={true}
         />
       )

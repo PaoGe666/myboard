@@ -11,7 +11,7 @@
       v-model="inputValue"
       ref="inputRef"
       type="text"
-      :class="['input input-sm join-item w-full', { 'pr-6': clearable }]"
+      :class="['input input-sm join-item w-full', inputClass, { 'pr-6': clearable }]"
       :placeholder="placeholder || ''"
       :name="name || ''"
       :autocomplete="autocomplete || ''"
@@ -46,6 +46,7 @@ const props = defineProps<{
   name?: string
   autocomplete?: string
   clearable?: boolean
+  inputClass?: string
   menus?: string[]
   menusDeleteable?: boolean
 }>()
@@ -62,22 +63,12 @@ const handlerSearchInputClick = (e: Event) => {
     return
   }
   const PopContent = defineComponent({
-    props: {
-      menus: {
-        type: Array,
-        default: () => [],
-      },
-      menusDeleteable: {
-        type: Boolean,
-        default: false,
-      },
-    },
-    setup(props: { menus: string[]; menusDeleteable: boolean }) {
+    setup() {
       return () =>
         h(
           'div',
           { class: 'max-h-64 overflow-y-auto overflow-x-hidden scrollbar-hidden min-w-24 py-1' },
-          props.menus.map((item) =>
+          (props.menus ?? []).map((item) =>
             h(
               'div',
               {
@@ -100,14 +91,13 @@ const handlerSearchInputClick = (e: Event) => {
                 props.menusDeleteable &&
                   h(XMarkIcon, {
                     class: 'h-3 w-3 transition-transform hover:scale-125',
-                    onClick: (e) => {
-                      const target = e.target as HTMLElement
+                    onClick: () => {
+                      const nextMenus = (props.menus ?? []).filter((menu) => menu !== item)
 
-                      emits(
-                        'update:menus',
-                        props.menus.filter((menu) => menu !== item),
-                      )
-                      target.closest('div')?.remove()
+                      emits('update:menus', nextMenus)
+                      if (!nextMenus.length) {
+                        hideTip()
+                      }
                     },
                   }),
               ],
@@ -117,10 +107,7 @@ const handlerSearchInputClick = (e: Event) => {
     },
   })
   const mountEl = document.createElement('div')
-  const app = createApp(PopContent, {
-    menus: props.menus,
-    menusDeleteable: props.menusDeleteable,
-  })
+  const app = createApp(PopContent)
 
   app.mount(mountEl)
 

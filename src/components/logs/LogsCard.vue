@@ -13,20 +13,33 @@
         class="badge badge-sm"
         :class="colorMapForType[log.type as keyof typeof colorMapForType]"
       >
-        {{ log.type }}
+        <HighlightText
+          :text="log.type"
+          :filter="logFilter"
+        />
       </span>
       <div class="flex-1"></div>
       <span class="text-base-content/40 text-xs tabular-nums">
-        {{ log.time }}
+        <HighlightText
+          :text="log.time"
+          :filter="logFilter"
+        />
       </span>
     </div>
-    <div class="w-full leading-relaxed break-words">{{ log.payload }}</div>
+    <div class="w-full leading-relaxed break-words">
+      <HighlightText
+        :text="log.payload"
+        :filter="logFilter"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import HighlightText from '@/components/common/HighlightText.vue'
 import { useBounceOnVisible } from '@/composables/bouncein'
 import { LOG_LEVEL } from '@/constant'
+import { logFilter } from '@/store/logs'
 import type { LogWithSeq } from '@/types'
 import { computed } from 'vue'
 

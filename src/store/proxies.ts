@@ -14,6 +14,7 @@ import {
   NOT_CONNECTED,
   PROXY_TAB_TYPE,
   PROXY_TYPE,
+  SPEEDTEST_MODE,
   TEST_URL,
 } from '@/constant'
 import { isProxyGroup } from '@/helper'
@@ -31,6 +32,7 @@ import {
   independentLatencyTest,
   IPv6test,
   providerEnabledMap,
+  speedtestMode,
   speedtestTimeout,
   speedtestUrl,
 } from './settings'
@@ -330,7 +332,7 @@ const testLatencyOneByOneWithTip = async (
   await Promise.allSettled(
     nodes.map((name) =>
       limiter(async () => {
-        const res = await latencyTestForSingle(name, url, Math.min(1500, speedtestTimeout.value))
+        const res = await latencyTestForSingle(name, url, Math.min(2000, speedtestTimeout.value))
 
         if (res.status !== 200) {
           testFailed++
@@ -374,6 +376,7 @@ export const proxyGroupLatencyTest = async (proxyGroupName: string) => {
   const url = getTestUrl(proxyGroupName)
 
   if (
+    speedtestMode.value === SPEEDTEST_MODE.DASHBOARD &&
     [PROXY_TYPE.Selector, PROXY_TYPE.LoadBalance, PROXY_TYPE.Smart].includes(
       proxyNode.type.toLowerCase() as PROXY_TYPE,
     )

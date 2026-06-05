@@ -2,6 +2,45 @@
 
 # Changelog
 
+## [3.7.1](https://github.com/Zephyruso/zashboard/compare/v3.7.0...v3.7.1) (2026-06-01)
+
+
+### Bug Fixes
+
+* add '/storage/zashboard' to ignoreNotificationUrls and update FolderTopBar for swipe handling ([1ddbf1e](https://github.com/Zephyruso/zashboard/commit/1ddbf1e083b2521d55ff768a62e60e467a8808ee))
+
+## [3.7.0](https://github.com/Zephyruso/zashboard/compare/v3.6.0...v3.7.0) (2026-06-01)
+
+
+### Features
+
+* add proxy folder management feature ([379ec4e](https://github.com/Zephyruso/zashboard/commit/379ec4e1e9b74f149b7d0ede84717e980796977f))
+* enhance search functionality with testAny method for improved regex matching ([4c8faaf](https://github.com/Zephyruso/zashboard/commit/4c8faafcced2b283709ec58a66b0d6382374bb25))
+* implement proxy folder mode with improved settings and UI updates ([c36b593](https://github.com/Zephyruso/zashboard/commit/c36b59398a3b4ade26bd6dcd81158a908f79ceda))
+* refactor folder management UI components for improved layout and responsiveness ([8d6b58a](https://github.com/Zephyruso/zashboard/commit/8d6b58ad784b7f4bf882c6af6a17823feebf5675))
+* Sync settings after adding backend ([#656](https://github.com/Zephyruso/zashboard/issues/656)) ([f554b27](https://github.com/Zephyruso/zashboard/commit/f554b27eeba714f4553fc46cc873dc5e79035884))
+
+
+### Bug Fixes
+
+* **SetupPage:** improve button styling for better responsiveness and text truncation ([3bcc915](https://github.com/Zephyruso/zashboard/commit/3bcc915177bd736c3e93d25ec60a4a10baa9fd95))
+
+## [3.6.0](https://github.com/Zephyruso/zashboard/compare/v3.5.1...v3.6.0) (2026-05-26)
+
+
+### Features
+
+* add proxy node search mode ([ef8d3ee](https://github.com/Zephyruso/zashboard/commit/ef8d3ee244410fb499bf1ef380e2a9c4916793b9))
+* **ProxiesSettings:** add speedtest mode configuration with multilingual support ([64241ee](https://github.com/Zephyruso/zashboard/commit/64241eecbe365f276e4ad315450869807ee99dc5))
+* unify search with regex matching ([5a23827](https://github.com/Zephyruso/zashboard/commit/5a2382752be3448874bb1678f77ddf548b800862))
+
+
+### Bug Fixes
+
+* **DnsQuery:** enhance DNS query input with history management and improved result display ([5b13c53](https://github.com/Zephyruso/zashboard/commit/5b13c537145ca38f6896f299a30fe5228fe48145))
+* **proxies:** update global proxy handling to utilize getProxyGroupChains for improved filtering ([f750c66](https://github.com/Zephyruso/zashboard/commit/f750c665891a1571212667d72eb309a45f7b10fe))
+* **SourceIPFilter:** optimize source IP options handling in watch function ([58364be](https://github.com/Zephyruso/zashboard/commit/58364be31f7a13aebb74333864ea6fe38eabe051))
+
 ## [3.5.1](https://github.com/Zephyruso/zashboard/compare/v3.5.0...v3.5.1) (2026-04-23)
 
 

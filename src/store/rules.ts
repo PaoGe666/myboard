@@ -1,5 +1,6 @@
 import { fetchRuleProvidersAPI, fetchRulesAPI } from '@/api'
 import { RULE_TAB_TYPE } from '@/constant'
+import { toSearchRegex } from '@/helper/search'
 import type { Rule, RuleProvider } from '@/types'
 import { computed, ref } from 'vue'
 
@@ -10,36 +11,26 @@ export const rules = ref<Rule[]>([])
 export const ruleProviderList = ref<RuleProvider[]>([])
 
 export const renderRules = computed(() => {
-  const rulesFilterValue = rulesFilter.value.split(' ').map((f) => f.toLowerCase().trim())
+  const searchRegex = toSearchRegex(rulesFilter.value)
 
-  if (rulesFilter.value === '') {
+  if (!searchRegex) {
     return rules.value
   }
 
   return rules.value.filter((rule) => {
-    return rulesFilterValue.every((f) =>
-      [rule.type.toLowerCase(), rule.payload.toLowerCase(), rule.proxy.toLowerCase()].some((i) =>
-        i.includes(f),
-      ),
-    )
+    return searchRegex.testAny([rule.type, rule.payload, rule.proxy])
   })
 })
 
 export const renderRulesProvider = computed(() => {
-  const rulesFilterValue = rulesFilter.value.split(' ').map((f) => f.toLowerCase().trim())
+  const searchRegex = toSearchRegex(rulesFilter.value)
 
-  if (rulesFilter.value === '') {
+  if (!searchRegex) {
     return ruleProviderList.value
   }
 
   return ruleProviderList.value.filter((ruleProvider) => {
-    return rulesFilterValue.every((f) =>
-      [
-        ruleProvider.name.toLowerCase(),
-        ruleProvider.behavior.toLowerCase(),
-        ruleProvider.vehicleType.toLowerCase(),
-      ].some((i) => i.includes(f)),
-    )
+    return searchRegex.testAny([ruleProvider.name, ruleProvider.behavior, ruleProvider.vehicleType])
   })
 })
 
