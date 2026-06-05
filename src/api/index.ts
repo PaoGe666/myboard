@@ -241,25 +241,11 @@ export const updateConfigsAPI = (
 
 export const upgradeUIAPI = async () => {
   try {
-    const patchTasks = [
-      patchConfigsAPI({
-        'external-ui': MYBOARD_EXTERNAL_UI,
-        'external-ui-name': MYBOARD_EXTERNAL_UI_NAME,
-        'external-ui-url': MYBOARD_EXTERNAL_UI_URL,
-      }),
-    ]
-
-    if (!isOpenClashMyboardUI()) {
-      patchTasks.push(
-        patchConfigsAPI({
-          'external-ui': MYBOARD_EXTERNAL_UI,
-          'external-ui-name': MYBOARD_EXTERNAL_UI_NAME,
-          'external-ui-url': MYBOARD_EXTERNAL_UI_URL,
-        }),
-      )
-    }
-
-    await Promise.allSettled(patchTasks)
+    await patchConfigsAPI({
+      'external-ui': MYBOARD_EXTERNAL_UI,
+      'external-ui-name': MYBOARD_EXTERNAL_UI_NAME,
+      'external-ui-url': MYBOARD_EXTERNAL_UI_URL,
+    })
     await axios.post('/upgrade/ui')
   } catch (error) {
     console.warn('Failed to upgrade UI:', error)
