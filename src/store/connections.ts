@@ -1,12 +1,22 @@
 import { disconnectByIdAPI, fetchConnectionsAPI } from '@/api'
 import { CONNECTION_TAB_TYPE, SORT_DIRECTION, SORT_TYPE } from '@/constant'
 import { getChainsStringFromConnection, getInboundUserFromConnection } from '@/helper'
+import { getConnectionVisibleSearchValues } from '@/helper/connection'
+import { toSearchRegex } from '@/helper/search'
 import type { Connection, ConnectionRawMessage } from '@/types'
 import { useStorage, watchOnce } from '@vueuse/core'
 import dayjs from 'dayjs'
 import { computed, ref, watch } from 'vue'
 import { initAggregatedDataMap, saveConnectionHistory } from './connHistory'
-import { autoDisconnectIdleUDP, autoDisconnectIdleUDPTime, isConnectionCard } from './settings'
+import {
+  autoDisconnectIdleUDP,
+  autoDisconnectIdleUDPTime,
+  connectionCardLines,
+  connectionTableColumns,
+  isConnectionCard,
+  proxyChainDirection,
+  showFullProxyChain,
+} from './settings'
 
 export const connectionTabShow = ref(CONNECTION_TAB_TYPE.ACTIVE)
 export const connectionSortType = useStorage<SORT_TYPE>(
@@ -166,34 +176,20 @@ export const connections = computed(() => {
 })
 
 export const renderConnections = computed(() => {
-  const lowerCaseFilter = connectionFilter.value.split(' ').map((f) => f.toLowerCase().trim())
-
-  let regex: RegExp | null = null
-
-  if (quickFilterEnabled.value && quickFilterRegex.value) {
-    regex = new RegExp(quickFilterRegex.value, 'i')
+  const searchRegex = toSearchRegex(connectionFilter.value)
+  const hideRegex = quickFilterEnabled.value ? toSearchRegex(quickFilterRegex.value) : null
+  const displayOptions = {
+    mode: isConnectionCard.value ? ('card' as const) : ('table' as const),
+    proxyChainDirection: proxyChainDirection.value,
+    showFullProxyChain: showFullProxyChain.value,
   }
+  const visibleKeys = isConnectionCard.value
+    ? connectionCardLines.value.flat()
+    : connectionTableColumns.value
 
   return connections.value
     .filter((conn) => {
-      const metadatas = [
-        conn.metadata.host,
-        conn.metadata.destinationIP,
-        conn.metadata.destinationPort,
-        conn.metadata.sourceIP,
-        conn.metadata.sourcePort,
-        conn.metadata.sniffHost,
-        conn.metadata.inboundUser,
-        conn.metadata.inboundName,
-        conn.metadata.inboundPort,
-        conn.metadata.process,
-        conn.metadata.processPath,
-        conn.metadata.type,
-        conn.metadata.network,
-        conn.chains.join(''),
-        conn.rule,
-        conn.rulePayload,
-      ]
+      const visibleValues = getConnectionVisibleSearchValues(conn, visibleKeys, displayOptions)
 
       if (
         sourceIPFilter.value !== null &&
@@ -202,16 +198,16 @@ export const renderConnections = computed(() => {
         return false
       }
 
-      if (regex) {
-        const quickFilterMatch = metadatas.some((i) => regex.test(i))
+      if (hideRegex) {
+        const quickFilterMatch = hideRegex.testAny(visibleValues)
 
         if (quickFilterMatch) {
           return false
         }
       }
 
-      if (connectionFilter.value) {
-        return lowerCaseFilter.every((i) => metadatas.some((j) => j?.toLowerCase().includes(i)))
+      if (searchRegex) {
+        return searchRegex.testAny(visibleValues)
       }
 
       return true

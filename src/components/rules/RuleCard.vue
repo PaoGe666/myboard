@@ -11,14 +11,21 @@
         <span class="text-base-content/50 text-xs tabular-nums">
           {{ index }}
         </span>
-        <span class="text-base-content/80 ml-4 text-xs"
-          >{{ rule.type }} <template v-if="rule.payload"> : </template></span
-        >
+        <span class="text-base-content/80 ml-4 text-xs">
+          <HighlightText
+            :text="rule.type"
+            :filter="rulesFilter"
+          />
+          <template v-if="rule.payload"> : </template>
+        </span>
         <span
           class="ml-2"
           v-if="rule.payload"
         >
-          {{ rule.payload }}
+          <HighlightText
+            :text="rule.payload"
+            :filter="rulesFilter"
+          />
         </span>
         <span
           v-if="typeof size === 'number' && size !== -1"
@@ -65,6 +72,7 @@
           :collapsed="isCollapsed"
           :show-now-node="displayNowNodeInRule"
           :show-latency="displayLatencyInRule"
+          :filter="rulesFilter"
           :interactive="!isCollapsed"
           @update:selected="selected = $event"
         />
@@ -93,7 +101,7 @@ import { useBounceOnVisible } from '@/composables/bouncein'
 import { useTooltip } from '@/helper/tooltip'
 import { activeConnections } from '@/store/connections'
 import { proxyGroupList } from '@/store/proxies'
-import { fetchRules, ruleProviderList } from '@/store/rules'
+import { fetchRules, ruleProviderList, rulesFilter } from '@/store/rules'
 import {
   disconnectOnRuleDisable,
   displayLatencyInRule,
@@ -110,6 +118,7 @@ import { twMerge } from 'tailwind-merge'
 import type { Ref } from 'vue'
 import { computed, createApp, defineComponent, h, inject, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import HighlightText from '../common/HighlightText.vue'
 import ProxyChainPath from '../common/ProxyChainPath.vue'
 import ProxyGroup from '../proxies/ProxyGroup.vue'
 

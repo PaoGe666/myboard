@@ -25,7 +25,7 @@ axios.interceptors.request.use((config) => {
   return config
 })
 
-const ignoreNotificationUrls = ['/delay', '/weights']
+const ignoreNotificationUrls = ['/delay', '/weights', '/storage/zashboard']
 
 axios.interceptors.response.use(
   null,
@@ -88,6 +88,7 @@ const MYBOARD_EXTERNAL_UI = '/usr/share/openclash/ui'
 const MYBOARD_EXTERNAL_UI_NAME = 'myboard'
 const MYBOARD_EXTERNAL_UI_URL = 'https://paoge666.github.io/myboard/myboard.zip'
 const MYBOARD_VERSION_URL = 'https://paoge666.github.io/myboard/myboard-version.json'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const isOpenClashMyboardUI = () => {
   return window.location.pathname.replace(/\/+$/, '').endsWith('/ui/myboard')
 }
