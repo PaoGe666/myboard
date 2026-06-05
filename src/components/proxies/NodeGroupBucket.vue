@@ -381,14 +381,13 @@ watch(
       return
     }
 
-    if (!nextAutoGroups.length && nextManualGroups.length) {
+    if (activeTypeTab.value === 'auto' && !nextAutoGroups.length && nextManualGroups.length) {
       activeTypeTab.value = 'manual'
       return
     }
 
-    if (!nextManualGroups.length && nextAutoGroups.length) {
+    if (activeTypeTab.value === 'manual' && !nextManualGroups.length && nextAutoGroups.length) {
       activeTypeTab.value = 'auto'
-      return
     }
   },
   { immediate: true },
