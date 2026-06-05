@@ -240,15 +240,31 @@ export const updateConfigsAPI = (
 }
 
 export const upgradeUIAPI = async () => {
-  if (isOpenClashMyboardUI()) {
-    await patchConfigsAPI({
-      'external-ui': MYBOARD_EXTERNAL_UI,
-      'external-ui-name': MYBOARD_EXTERNAL_UI_NAME,
-      'external-ui-url': MYBOARD_EXTERNAL_UI_URL,
-    }).catch(() => undefined)
-  }
+  try {
+    const patchTasks = [
+      patchConfigsAPI({
+        'external-ui': MYBOARD_EXTERNAL_UI,
+        'external-ui-name': MYBOARD_EXTERNAL_UI_NAME,
+        'external-ui-url': MYBOARD_EXTERNAL_UI_URL,
+      }),
+    ]
 
-  return axios.post('/upgrade/ui')
+    if (!isOpenClashMyboardUI()) {
+      patchTasks.push(
+        patchConfigsAPI({
+          'external-ui': MYBOARD_EXTERNAL_UI,
+          'external-ui-name': MYBOARD_EXTERNAL_UI_NAME,
+          'external-ui-url': MYBOARD_EXTERNAL_UI_URL,
+        }),
+      )
+    }
+
+    await Promise.allSettled(patchTasks)
+    await axios.post('/upgrade/ui')
+  } catch (error) {
+    console.warn('Failed to upgrade UI:', error)
+    throw error
+  }
 }
 
 export const updateGeoDataAPI = () => {
