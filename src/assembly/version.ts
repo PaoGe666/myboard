@@ -14,7 +14,10 @@ import { can, core, Core, resetCore } from './backend'
 
 export const version = ref()
 export const isCoreUpdateAvailable = ref(false)
-export const zashboardVersion = ref(__APP_VERSION__)
+export const myboardVersion = ref(__APP_VERSION__)
+export const zashboardVersion = myboardVersion
+
+const MYBOARD_VERSION_URL = 'https://paoge666.github.io/myboard/myboard-version.json'
 
 // 切后端时本来就要打一次 /version,顺手把它的结果暴露成连通性状态,
 // 给切换提示用 —— 不额外发探测请求,量的也正是实际在用的那条 API。
@@ -175,13 +178,37 @@ async function fetchWithLocalCache<T>(url: string, version: string): Promise<T> 
   return data
 }
 
-export const fetchIsUIUpdateAvailable = async () => {
-  const { tag_name } = await fetchWithLocalCache<{ tag_name: string }>(
-    'https://api.github.com/repos/Zephyruso/zashboard/releases/latest',
-    zashboardVersion.value,
-  )
+interface MyboardVersionMetadata {
+  commit?: string
+  commit_full?: string
+  version?: string
+}
 
-  return Boolean(tag_name && tag_name !== `v${zashboardVersion.value}`)
+const fetchMyboardVersionMetadata = async () => {
+  const response = await fetch(`${MYBOARD_VERSION_URL}?t=${Date.now()}`, { cache: 'no-store' })
+
+  if (!response.ok) {
+    throw new Error(`Fetch failed: ${response.status} ${response.statusText}`)
+  }
+
+  return response.json() as Promise<MyboardVersionMetadata>
+}
+
+export const fetchIsUIUpdateAvailable = async () => {
+  try {
+    const remote = await fetchMyboardVersionMetadata()
+    const localCommit = __COMMIT_ID__
+    const remoteCommit = remote.commit || remote.commit_full?.slice(0, 7)
+
+    if (localCommit && remoteCommit) {
+      return remoteCommit !== localCommit
+    }
+
+    return Boolean(remote.version && remote.version !== myboardVersion.value)
+  } catch (error) {
+    console.warn('Failed to check Myboard update:', error)
+    return false
+  }
 }
 
 const check = async (url: string, versionNumber: string) => {

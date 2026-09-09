@@ -255,8 +255,22 @@ export const restartCoreAPI = () => {
 }
 
 // 面板自升级是 mihomo 标准能力;honk 虽可加载 zashboard,但未提供此端点。
-export const upgradeUIAPI = () => {
-  return axios.post('/upgrade/ui')
+const MYBOARD_EXTERNAL_UI = '/usr/share/openclash/ui'
+const MYBOARD_EXTERNAL_UI_NAME = 'myboard'
+const MYBOARD_EXTERNAL_UI_URL = 'https://paoge666.github.io/myboard/myboard.zip'
+
+export const upgradeUIAPI = async () => {
+  try {
+    await patchConfigsAPI({
+      'external-ui': MYBOARD_EXTERNAL_UI,
+      'external-ui-name': MYBOARD_EXTERNAL_UI_NAME,
+      'external-ui-url': MYBOARD_EXTERNAL_UI_URL,
+    })
+    await axios.post('/upgrade/ui')
+  } catch (error) {
+    console.warn('Failed to upgrade UI:', error)
+    throw error
+  }
 }
 
 // 面板设置同步。/storage/zashboard 是 mihomo 标准扩展。

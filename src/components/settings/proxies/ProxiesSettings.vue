@@ -197,6 +197,26 @@
             v-model="proxyGroupIconMargin"
           />
         </SettingItem>
+        <SettingItem :setting-key="k.autoOptimize">
+          <div class="setting-item-label">
+            {{ $t('autoOptimize') }}
+          </div>
+          <input
+            class="toggle"
+            type="checkbox"
+            v-model="autoOptimize"
+          />
+        </SettingItem>
+        <SettingItem :setting-key="k.preferBrandSvgIcon">
+          <div class="setting-item-label">
+            {{ $t('preferBrandSvgIcon') }}
+          </div>
+          <input
+            class="toggle"
+            type="checkbox"
+            v-model="preferBrandSvgIcon"
+          />
+        </SettingItem>
         <IconSettings />
       </div>
     </template>
@@ -212,12 +232,14 @@ import { FOLDER_MODE, PROXY_CARD_SIZE, PROXY_PREVIEW_TYPE, SPEEDTEST_MODE } from
 import { useTooltip } from '@/helper/tooltip'
 import { getMinCardWidth } from '@/helper/utils'
 import {
+  autoOptimize,
   displayGlobalByMode,
   independentLatencyTest,
   IPv6test,
   lowLatency,
   mediumLatency,
   minProxyCardWidth,
+  preferBrandSvgIcon,
   proxyCardSize,
   proxyGroupIconMargin,
   proxyGroupIconSize,
@@ -254,6 +276,8 @@ const isVisibleProxyCardSize = useIsSettingVisible(k.proxyCardSize)
 const isVisibleProxyGroupIconSize = useIsSettingVisible(k.proxyGroupIconSize)
 const isVisibleProxyGroupIconMargin = useIsSettingVisible(k.proxyGroupIconMargin)
 const isVisibleIconSettings = useIsSettingVisible(k.icon)
+const isVisibleAutoOptimize = useIsSettingVisible(k.autoOptimize)
+const isVisiblePreferBrandSvgIcon = useIsSettingVisible(k.preferBrandSvgIcon)
 
 const { showTip } = useTooltip()
 const { t } = useI18n()
@@ -296,6 +320,8 @@ const hasVisibleProxyAdvancedItems = computed(
   () =>
     isVisibleProxyGroupIconSize.value ||
     isVisibleProxyGroupIconMargin.value ||
-    isVisibleIconSettings.value,
+    isVisibleIconSettings.value ||
+    isVisibleAutoOptimize.value ||
+    isVisiblePreferBrandSvgIcon.value,
 )
 </script>

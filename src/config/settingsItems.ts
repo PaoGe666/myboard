@@ -370,6 +370,16 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
         label: 'icon',
         section: 'settingsSectionProxyAdvanced',
       },
+      {
+        key: `${SETTINGS_MENU_KEY.proxies}.autoOptimize`,
+        label: 'autoOptimize',
+        section: 'settingsSectionProxyAdvanced',
+      },
+      {
+        key: `${SETTINGS_MENU_KEY.proxies}.preferBrandSvgIcon`,
+        label: 'preferBrandSvgIcon',
+        section: 'settingsSectionProxyAdvanced',
+      },
     ],
   },
   {
