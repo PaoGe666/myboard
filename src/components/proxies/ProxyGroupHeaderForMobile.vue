@@ -13,6 +13,12 @@
       <span class="shrink-0 tracking-wider whitespace-nowrap uppercase tabular-nums">
         {{ proxyGroup.type }} · {{ proxiesCount }}
       </span>
+      <span
+        v-if="showWarning"
+        class="bg-warning/18 text-warning shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+      >
+        {{ $t('noAvailableProxy') }}
+      </span>
       <ProxyGroupFilter
         v-if="displayContent"
         :group-name="name"
@@ -41,7 +47,7 @@
       <LatencyTag
         :class="twMerge('bg-base-200/40 hover:bg-base-200/70 z-10')"
         :loading="isLatencyTesting"
-        :name="proxyGroup.now"
+        :name="props.now ?? proxyGroup.now"
         :group-name="proxyGroup.name"
         @click.stop="emit('latency-test')"
       />
@@ -78,6 +84,8 @@ const props = defineProps<{
   proxiesCount: string
   isLatencyTesting: boolean
   displayContent: boolean
+  now?: string
+  showWarning?: boolean
 }>()
 
 const emit = defineEmits<{

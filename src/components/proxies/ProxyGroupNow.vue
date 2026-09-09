@@ -2,7 +2,7 @@
   <div class="flex flex-1 items-center gap-1 truncate">
     <template v-if="currentProxyName">
       <Component
-        class="h-4 w-4 shrink-0 outline-none"
+        class="text-base-content/40 h-3.5 w-3.5 shrink-0 outline-none"
         :is="isFixed ? LockClosedIcon : ArrowRightCircleIcon"
         @mouseenter="tipForFixed"
       />
@@ -11,20 +11,20 @@
         :class="
           isNowAGroup && 'hover:bg-base-300 hover:-mx-1 hover:rounded-lg hover:px-1 hover:shadow'
         "
-        class="text-base-content/80 text-xs md:text-sm"
+        class="text-base-content text-xs md:text-sm"
         @click="handlerClickNow"
       />
       <template v-if="finalOutbound && displayFinalOutbound">
-        <ArrowRightCircleIcon class="h-4 w-4 shrink-0" />
+        <ArrowRightCircleIcon class="text-base-content/40 h-3.5 w-3.5 shrink-0" />
         <ProxyName
           :name="finalOutbound"
-          class="text-base-content/80 text-xs md:text-sm"
+          class="text-base-content text-xs md:text-sm"
         />
       </template>
     </template>
     <template v-else-if="proxyGroup.type.toLowerCase() === PROXY_TYPE.LoadBalance">
-      <CheckCircleIcon class="h-4 w-4 shrink-0" />
-      <span class="text-base-content/80 text-xs md:text-sm">
+      <CheckCircleIcon class="text-base-content/40 h-3.5 w-3.5 shrink-0" />
+      <span class="text-base-content text-xs md:text-sm">
         {{ $t('loadBalance') }}
       </span>
     </template>
@@ -38,9 +38,9 @@
 </template>
 
 <script setup lang="ts">
+import { openProxyGroupChain } from '@/composables/proxyGroupChain'
 import { PROXY_TYPE } from '@/constant'
 import { useTooltip } from '@/helper/tooltip'
-import { scrollToGroup } from '@/helper/utils'
 import {
   getCurrentProxyName,
   getNowProxyNodeName,
@@ -63,9 +63,9 @@ const props = defineProps<{
   mobile?: boolean
 }>()
 const proxyGroup = computed(() => proxyMap.value[props.name])
+const currentProxyName = computed(() => getCurrentProxyName(props.name))
 const { showTip } = useTooltip()
 const { t } = useI18n()
-const currentProxyName = computed(() => getCurrentProxyName(props.name))
 
 const isFixed = computed(() => {
   return proxyGroup.value.fixed === currentProxyName.value
@@ -88,7 +88,7 @@ const isNowAGroup = computed(() => {
 const finalOutbound = computed(() => {
   const now = getNowProxyNodeName(props.name)
 
-  if (!currentProxyName.value || now === currentProxyName.value) {
+  if (now === currentProxyName.value) {
     return ''
   }
 
@@ -98,7 +98,7 @@ const finalOutbound = computed(() => {
 const handlerClickNow = (e: Event) => {
   if (isNowAGroup.value) {
     e.stopPropagation()
-    scrollToGroup(currentProxyName.value)
+    openProxyGroupChain(props.name)
   }
 }
 </script>

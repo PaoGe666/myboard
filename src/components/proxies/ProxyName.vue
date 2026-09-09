@@ -1,7 +1,7 @@
 <template>
   <div class="flex shrink-0 items-center">
     <ProxyIcon
-      v-if="displayIcon"
+      v-if="icon"
       :icon="rawIcon"
       :name="name"
       :margin="iconMargin"
@@ -18,8 +18,8 @@
 </template>
 
 <script setup lang="ts">
-import { getPreferredProxyIcon } from '@/helper/proxyIcon'
 import HighlightText from '@/components/common/HighlightText.vue'
+import { getPreferredProxyIcon } from '@/helper/proxyIcon'
 import { proxyMap } from '@/assembly/proxies'
 import { preferBrandSvgIcon } from '@/store/settings'
 import { computed } from 'vue'
@@ -41,7 +41,7 @@ const props = withDefaults(
 
 const node = computed(() => proxyMap.value[props.name])
 const rawIcon = computed(() => node.value?.icon || '')
-const displayIcon = computed(() =>
+const icon = computed(() =>
   getPreferredProxyIcon(props.name, rawIcon.value, preferBrandSvgIcon.value),
 )
 const dialerProxy = computed(() => {

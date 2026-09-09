@@ -2,24 +2,24 @@
   <CollapseCard :name="proxyProvider.name">
     <template v-slot:title>
       <div class="flex items-center justify-between gap-2">
-        <div class="flex flex-1 items-center gap-1">
-          <span class="text-base font-semibold tracking-tight">{{ proxyProvider.name }}</span>
-          <span class="text-base-content/60 text-xs tabular-nums">
-            · {{ proxyProvider.vehicleType }} · {{ proxiesCount }}
+        <div class="flex flex-1 items-center gap-2.5">
+          <span class="text-base-content">{{ proxyProvider.name }}</span>
+          <span
+            class="text-base-content/40 min-w-0 flex-1 truncate text-[11px] tracking-wider uppercase tabular-nums"
+          >
+            {{ proxyProvider.vehicleType }} · {{ proxiesCount }}
           </span>
         </div>
         <div class="flex items-center gap-1.5">
-          <div class="form-control">
-            <label class="label cursor-pointer gap-1">
-              <span class="label-text text-xs">{{ $t('enabled') }}</span>
-              <input
-                type="checkbox"
-                class="toggle toggle-sm toggle-primary"
-                :checked="isEnabled"
-                @change="toggleEnabled"
-              />
-            </label>
-          </div>
+          <label class="label cursor-pointer gap-1">
+            <span class="label-text text-xs">{{ $t('enabled') }}</span>
+            <input
+              type="checkbox"
+              class="toggle toggle-sm toggle-primary"
+              :checked="isEnabled"
+              @change="toggleEnabled"
+            />
+          </label>
           <button
             class="btn btn-circle btn-ghost btn-sm z-30"
             @click.stop="healthCheckClickHandler"
@@ -70,24 +70,23 @@
       <ProxyPreview :nodes="renderProxies" />
     </template>
     <template v-slot:content>
-      <ProxiesContent
-        :name="name"
-        :render-proxies="renderProxies"
-      />
+      <ProxiesContent :render-proxies="renderProxies" />
     </template>
   </CollapseCard>
 </template>
 
 <script setup lang="ts">
-import { proxyProviderHealthCheckAPI, updateProxyProviderAPI } from '@/assembly/proxies'
-import { useBounceOnVisible } from '@/composables/bouncein'
-import { useRenderProxyList } from '@/composables/renderProxies'
-import { fromNow, prettyBytesHelper } from '@/helper/utils'
 import {
   fetchProxies,
-  proxyProviederList,
+  proxyProviderHealthCheckAPI,
   reconcileDisabledProviderSelections,
+  updateProxyProviderAPI,
+  proxyProviederList,
 } from '@/assembly/proxies'
+import { useBounceOnVisible } from '@/composables/bouncein'
+import { useRenderProxyList } from '@/composables/renderProxies'
+import { notifyRequestError } from '@/helper/requestError'
+import { fromNow, prettyBytesHelper } from '@/helper/utils'
 import { providerEnabledMap } from '@/store/settings'
 import { ArrowPathIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import dayjs from 'dayjs'
@@ -106,35 +105,6 @@ const props = defineProps<{
 const proxyProvider = computed(() =>
   proxyProviederList.value.find((group) => group.name === props.name)!,
 )
-
-// 订阅启用状态，默认 true（启用）
-const isEnabled = computed(() => {
-  return providerEnabledMap.value[props.name] !== false
-})
-
-const toggleEnabled = async () => {
-  const current = providerEnabledMap.value[props.name] !== false
-  if (current) {
-    // 禁用
-    providerEnabledMap.value = {
-      ...providerEnabledMap.value,
-      [props.name]: false,
-    }
-  } else {
-    // 启用
-    const newMap = { ...providerEnabledMap.value }
-    delete newMap[props.name]
-    providerEnabledMap.value = newMap
-  }
-
-  if (current) {
-    await reconcileDisabledProviderSelections()
-    return
-  }
-
-  await fetchProxies()
-}
-
 const allProxies = computed(() => proxyProvider.value.proxies.map((node) => node.name) ?? [])
 const { renderProxies, proxiesCount } = useRenderProxyList(allProxies)
 
@@ -181,6 +151,32 @@ const usageBarColor = computed(() => {
 const isUpdating = ref(false)
 const isHealthChecking = ref(false)
 
+// 订阅启用状态,默认 true(启用)
+const isEnabled = computed(() => {
+  return providerEnabledMap.value[props.name] !== false
+})
+
+const toggleEnabled = async () => {
+  const current = providerEnabledMap.value[props.name] !== false
+  if (current) {
+    providerEnabledMap.value = {
+      ...providerEnabledMap.value,
+      [props.name]: false,
+    }
+  } else {
+    const newMap = { ...providerEnabledMap.value }
+    delete newMap[props.name]
+    providerEnabledMap.value = newMap
+  }
+
+  if (current) {
+    await reconcileDisabledProviderSelections()
+    return
+  }
+
+  await fetchProxies()
+}
+
 const healthCheckClickHandler = async () => {
   if (isHealthChecking.value) return
 
@@ -188,8 +184,9 @@ const healthCheckClickHandler = async () => {
   try {
     await proxyProviderHealthCheckAPI(props.name)
     await fetchProxies()
-    isHealthChecking.value = false
-  } catch {
+  } catch (e) {
+    notifyRequestError(e)
+  } finally {
     isHealthChecking.value = false
   }
 }
@@ -201,8 +198,9 @@ const updateProviderClickHandler = async () => {
   try {
     await updateProxyProviderAPI(props.name)
     await fetchProxies()
-    isUpdating.value = false
-  } catch {
+  } catch (e) {
+    notifyRequestError(e)
+  } finally {
     isUpdating.value = false
   }
 }
