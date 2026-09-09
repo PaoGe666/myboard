@@ -3,7 +3,6 @@
     class="relative flex size-full overflow-hidden"
     :class="[disableProxiesPageTextSelect ? 'select-none' : '']"
   >
-    <FolderManagerPanel v-if="foldersUiVisible && folderManagerOpen" />
     <div
       class="max-md:scrollbar-hidden relative h-full min-w-0 flex-1"
       :class="disableProxiesPageScroll ? 'overflow-y-hidden' : 'overflow-y-scroll'"
@@ -12,7 +11,6 @@
       @scroll.passive="handleScroll"
     >
       <ProxiesCtrl />
-      <FolderTopBar v-if="foldersUiVisible" />
       <div
         ref="columnsRef"
         class="flex gap-3 p-3 md:pr-2"
@@ -44,8 +42,6 @@
 <script setup lang="ts">
 import VirtualColumn from '@/components/common/VirtualColumn.vue'
 import ProxiesCtrl from '@/components/controls/ProxiesCtrl'
-import FolderManagerPanel from '@/components/proxies/folders/FolderManagerPanel.vue'
-import FolderTopBar from '@/components/proxies/folders/FolderTopBar.vue'
 import NodeGroupBucket from '@/components/proxies/NodeGroupBucket.vue'
 import ProxyGroup from '@/components/proxies/ProxyGroup.vue'
 import ProxyGroupForMobile from '@/components/proxies/ProxyGroupForMobile.vue'
@@ -58,7 +54,6 @@ import { isMiddleScreen } from '@/helper/utils'
 import { fetchProxies } from '@/assembly/proxies'
 import { proxiesTabShow } from '@/assembly/proxies'
 import { disableProxiesPageTextSelect, twoColumnProxyGroup } from '@/store/settings'
-import { folderManagerOpen, isProxyFolderModeActive } from '@/store/proxyFolders'
 import { useResizeObserver, useSessionStorage } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
@@ -304,10 +299,6 @@ const estimatedCardHeight = computed(() => {
   return 112
 })
 
-const foldersUiVisible = computed(
-  () => isProxyFolderModeActive.value && proxiesTabShow.value === PROXY_TAB_TYPE.PROXIES,
-)
-
 const displayTwoColumns = computed(() => {
   if (proxiesTabShow.value === PROXY_TAB_TYPE.PROVIDER && isMiddleScreen.value) {
     return false
@@ -327,5 +318,5 @@ const columns = computed(() =>
 )
 
 useResizeObserver(proxiesRef, syncScrollMargin)
-watch([foldersUiVisible, displayTwoColumns, isMiddleScreen], () => nextTick(syncScrollMargin))
+watch([displayTwoColumns, isMiddleScreen], () => nextTick(syncScrollMargin))
 </script>

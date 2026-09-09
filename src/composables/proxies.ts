@@ -14,7 +14,6 @@ import {
   isNodeGroup,
   NODE_GROUP_BUCKET_ORDER,
 } from '@/helper'
-import { groupsInActiveFolder, isProxyFolderModeActive } from '@/store/proxyFolders'
 import { displayGlobalByMode, manageHiddenGroup } from '@/store/settings'
 import { isEmpty } from 'lodash'
 import { computed, ref } from 'vue'
@@ -166,9 +165,5 @@ export const renderProxiesPageItems = computed(() => {
     return renderGroups.value
   }
 
-  const groups = renderProxyGroups.value
-  if (!isProxyFolderModeActive.value) return groups
-  const filter = groupsInActiveFolder.value
-  if (!filter) return groups
-  return groups.filter((name) => filter.has(name))
+  return renderProxyGroups.value
 })
