@@ -268,6 +268,11 @@ const zh: LANG_MESSAGE = {
   independentLatencyTestTip:
     '开启独立延迟测试会在测速中尽可能的使用配置文件中的url覆盖面板设置的url，并展示根据策略组设置的url获取的延迟。',
   search: '搜索',
+  speedTest: '真实带宽测速',
+  speedTestStart: '开始测速',
+  speedTestHint: '测下载+上传，走**当前正在用的节点**链路（实测浏览器当前出站链路带宽）。',
+  speedTestFailed: '测速失败',
+
   testAllCustomNodes: '批量测速',
 
   editCustomNode: '编辑节点',
