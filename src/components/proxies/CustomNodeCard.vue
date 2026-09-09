@@ -1,5 +1,10 @@
 <template>
-  <div class="bg-base-100 border-base-300/50 flex w-full items-center gap-2 rounded-xl border p-3">
+  <div
+    :class="[
+      'bg-base-100 border-base-300/50 flex w-full items-center gap-2 rounded-xl border p-3 transition-colors',
+      isTesting && 'border-warning/70 ring-warning/30 bg-warning/5 ring-2',
+    ]"
+  >
     <ProxyIcon
       v-if="node?.icon"
       :icon="node.icon"
@@ -7,7 +12,15 @@
       class="shrink-0"
     />
     <div class="min-w-0 flex-1">
-      <div class="truncate text-sm">{{ name }}</div>
+      <div class="flex items-center gap-2 truncate text-sm">
+        <span>{{ name }}</span>
+        <span
+          v-if="isTesting"
+          class="bg-warning/15 text-warning shrink-0 animate-pulse rounded px-1.5 py-0.5 text-[10px] font-medium"
+        >
+          {{ $t('testing') }}
+        </span>
+      </div>
       <div class="text-base-content/50 text-xs">
         {{ node?.type }}
       </div>
@@ -37,7 +50,7 @@
 
 <script setup lang="ts">
 import { fetchProxies, proxyLatencyTest, proxyMap } from '@/assembly/proxies'
-import { openCustomNodeEditor } from '@/composables/proxies'
+import { openCustomNodeEditor, testingNodeNames } from '@/composables/proxies'
 import { showConfirmDialog } from '@/helper/confirmDialog'
 import { showNotification } from '@/helper/notification'
 import { callNodeCgi } from '@/helper/nodeCgi'
@@ -51,6 +64,7 @@ import ProxyIcon from './ProxyIcon.vue'
 const props = defineProps<{ name: string }>()
 const { t } = useI18n()
 const node = computed(() => proxyMap.value[props.name])
+const isTesting = computed(() => testingNodeNames.value.has(props.name))
 
 const testLatency = async () => {
   await proxyLatencyTest(props.name, undefined, 5000)

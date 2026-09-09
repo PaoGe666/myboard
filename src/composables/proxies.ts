@@ -145,6 +145,16 @@ export const closeCustomNodeEditor = () => {
   customNodeEditorTarget.value = null
 }
 
+// 批量测速中「正在测」的自定义节点集合
+const _testingNodeNames = ref(new Set<string>())
+export const testingNodeNames = computed(() => _testingNodeNames.value)
+export const markNodeTesting = (name: string, on: boolean) => {
+  const next = new Set(_testingNodeNames.value)
+  if (on) next.add(name)
+  else next.delete(name)
+  _testingNodeNames.value = next
+}
+
 export const nodeGroupBuckets = computed(() => {
   const buckets = new Map<string, string[]>()
 

@@ -145,6 +145,7 @@ import {
   customNodeEditorTarget,
   customNodeNames,
   disableProxiesPageScroll,
+  markNodeTesting,
   openCustomNodeEditor,
   providerSubTab,
   renderProxiesPageItems,
@@ -166,12 +167,28 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 const speedTestOpen = ref(false)
 const isTestingCustomNodes = ref(false)
+
+// 简易并发信号量:同时最多 CONCURRENCY 个测速,完成后取下一个
+const CONCURRENCY = 3
 const handlerTestCustomNodes = async () => {
   if (isTestingCustomNodes.value) return
   isTestingCustomNodes.value = true
-  const names = customNodeNames.value
+  const names = [...customNodeNames.value]
+  let cursor = 0
+  const next = async () => {
+    const idx = cursor++
+    if (idx >= names.length) return
+    const name = names[idx]
+    markNodeTesting(name, true)
+    try {
+      await proxyLatencyTest(name, undefined, 5000)
+    } finally {
+      markNodeTesting(name, false)
+    }
+    await next()
+  }
   try {
-    await Promise.allSettled(names.map((name) => proxyLatencyTest(name, undefined, 5000)))
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, names.length) }, () => next()))
   } finally {
     isTestingCustomNodes.value = false
   }
