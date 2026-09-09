@@ -41,6 +41,26 @@ const urlDecode = (s: string) => {
   }
 }
 
+// 共有辅助: 把 # 前后切成 (base, name),与把 userinfo@host:port?query 切成 (credential, server, port, query)
+const splitHash = (raw: string): { base: string; name: string } => {
+  const i = raw.indexOf('#')
+  return i < 0
+    ? { base: raw, name: '' }
+    : { base: raw.slice(0, i), name: urlDecode(raw.slice(i + 1)) }
+}
+
+const splitAuthority = (
+  authority: string,
+): { credential: string; server: string; port: number } | null => {
+  const at = authority.indexOf('@')
+  if (at < 0) return null
+  const credential = urlDecode(authority.slice(0, at))
+  const hp = authority.slice(at + 1)
+  const m = hp.match(/^(.+):(\d+)$/)
+  if (!m) return null
+  return { credential, server: m[1], port: Number(m[2]) }
+}
+
 const parseQuery = (q: string): Record<string, string> => {
   const out: Record<string, string> = {}
   if (!q) return out
@@ -166,52 +186,38 @@ const parseVlessTrojan = (
   scheme: 'vless' | 'trojan',
 ): Record<string, unknown> | null => {
   const body = raw.slice(`${scheme}://`.length)
-  const hashIdx = body.indexOf('#')
-  const name = parseName(hashIdx >= 0 ? body.slice(hashIdx + 1) : '', `${scheme}-node`)
-  const main = hashIdx >= 0 ? body.slice(0, hashIdx) : body
-  const queryIdx = main.indexOf('?')
-  const authority = queryIdx >= 0 ? main.slice(0, queryIdx) : main
-  const query = queryIdx >= 0 ? main.slice(queryIdx) : ''
-  const atIdx = authority.indexOf('@')
-  if (atIdx < 0) return null
-  const credential = decodeURIComponent(authority.slice(0, atIdx))
-  const hostport = authority.slice(atIdx + 1)
-  const portMatch = hostport.match(/^(.+):(\d+)$/)
-  if (!portMatch) return null
-  const server = portMatch[1]
-  const port = Number(portMatch[2])
-  if (!server || !port) return null
+  const { base, name } = splitHash(body)
+  const queryIdx = base.indexOf('?')
+  const authority = queryIdx >= 0 ? base.slice(0, queryIdx) : base
+  const query = queryIdx >= 0 ? base.slice(queryIdx) : ''
+  const auth = splitAuthority(authority)
+  if (!auth) return null
+  const { credential, server, port } = auth
   const params = parseQuery(query)
   const node: Record<string, unknown> = { name, type: scheme, server, port }
-  if (scheme === 'vless') {
-    node['uuid'] = credential
-    const flow = params['flow']
-    if (flow) node['flow'] = flow
-  } else {
-    node['password'] = credential
-  }
+  if (scheme === 'vless') node['uuid'] = credential
+  else node['password'] = credential
+  if (params['flow']) node['flow'] = params['flow']
   const sni = params['sni'] || params['peer']
   const security = params['security']
   if (security === 'reality' || security === 'tls' || sni) {
     node['tls'] = true
     if (sni) node['sni'] = sni
   }
-  const alpn = params['alpn']
-  if (alpn) node['alpn'] = alpn.split(',').map((s) => s.trim())
-  const fp = params['fp']
-  if (fp) node['client-fingerprint'] = fp
+  if (params['alpn']) node['alpn'] = params['alpn'].split(',').map((s) => s.trim())
+  if (params['fp']) node['client-fingerprint'] = params['fp']
   const insecure = params['allowInsecure'] || params['skip-cert-verify']
   if (insecure === '1' || insecure === 'true') node['skip-cert-verify'] = true
   const net = params['type']
   if (net && net !== 'tcp') {
     const opts: Record<string, unknown> = {}
-    if (params['host']) opts['headers'] = { Host: String(params['host']) }
-    if (params['path']) opts['path'] = String(params['path'])
-    if (params['serviceName']) opts['serviceName'] = String(params['serviceName'])
+    if (params['host']) opts['headers'] = { Host: params['host'] }
+    if (params['path']) opts['path'] = params['path']
+    if (params['serviceName']) opts['serviceName'] = params['serviceName']
     if (net === 'ws') node['ws-opts'] = opts
     else if (net === 'grpc') {
       if (params['serviceName'])
-        (opts as Record<string, string>)['grpc-service-name'] = String(params['serviceName'])
+        (opts as Record<string, string>)['grpc-service-name'] = params['serviceName']
       node['grpc-opts'] = opts
     }
   }
@@ -242,36 +248,26 @@ const parseHysteria2 = (raw: string): Record<string, unknown> | null => {
     port,
     password: credential,
   }
-  if (params['sni']) node['sni'] = String(params['sni'])
+  if (params['sni']) node['sni'] = params['sni']
   const insecure = params['insecure'] || params['skip-cert-verify']
   if (insecure === '1' || insecure === 'true') node['skip-cert-verify'] = true
   if (params['obfs']) {
     node['obfs'] = {
-      type: String(params['obfs']),
-      [params['obfs-password'] ? 'password' : '_']: params['obfs-password']
-        ? String(params['obfs-password'])
-        : undefined,
+      type: params['obfs'],
+      [params['obfs-password'] ? 'password' : '_']: params['obfs-password'] || undefined,
     }
   }
   return node
 }
 
 const parseTuic = (raw: string): Record<string, unknown> | null => {
-  const body = raw.slice('tuic://'.length)
-  const hashIdx = body.indexOf('#')
-  const name = parseName(hashIdx >= 0 ? body.slice(hashIdx + 1) : '', 'tuic-node')
-  const main = hashIdx >= 0 ? body.slice(0, hashIdx) : body
-  const queryIdx = main.indexOf('?')
-  const authority = queryIdx >= 0 ? main.slice(0, queryIdx) : main
-  const query = queryIdx >= 0 ? main.slice(queryIdx) : ''
-  const atIdx = authority.indexOf('@')
-  if (atIdx < 0) return null
-  const credential = decodeURIComponent(authority.slice(0, atIdx))
-  const hostport = authority.slice(atIdx + 1)
-  const portMatch = hostport.match(/^(.+):(\d+)$/)
-  if (!portMatch) return null
-  const server = portMatch[1]
-  const port = Number(portMatch[2])
+  const { base, name } = splitHash(raw.slice('tuic://'.length))
+  const queryIdx = base.indexOf('?')
+  const authority = queryIdx >= 0 ? base.slice(0, queryIdx) : base
+  const query = queryIdx >= 0 ? base.slice(queryIdx) : ''
+  const auth = splitAuthority(authority)
+  if (!auth) return null
+  const { credential, server, port } = auth
   const colonIdx = credential.indexOf(':')
   if (colonIdx < 0) return null
   const uuid = credential.slice(0, colonIdx)

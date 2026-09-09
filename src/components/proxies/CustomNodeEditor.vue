@@ -30,7 +30,6 @@ const password = ref(read('password'))
 const cipher = ref(read('cipher', 'aes-128-gcm'))
 const uuid = ref(read('uuid'))
 const alterId = ref<number | string>(num('alterId', 0))
-const cipherSecurity = ref(read('cipher'))
 const flow = ref(read('flow'))
 const username = ref(read('username'))
 const sni = ref(read('sni'))
@@ -54,7 +53,6 @@ const applyNode = (node: Record<string, unknown>) => {
   cipher.value = String(node.cipher ?? 'aes-128-gcm')
   uuid.value = String(node.uuid ?? '')
   alterId.value = Number(node.alterId ?? 0)
-  cipherSecurity.value = String((node as Record<string, unknown>)['cipher'] ?? '')
   flow.value = String(node.flow ?? '')
   username.value = String(node.username ?? '')
   sni.value = String(node.sni ?? '')
@@ -103,7 +101,7 @@ const buildNode = (): Record<string, unknown> => {
     case 'vmess':
       node.uuid = uuid.value
       node.alterId = Number(alterId.value)
-      node.cipher = cipherSecurity.value
+      node.cipher = cipher.value
       break
     case 'vless':
       node.uuid = uuid.value
@@ -256,7 +254,7 @@ const handlerSave = () => {
       >
         <span class="setting-item-label">{{ $t('cipher') }}</span>
         <TextInput
-          v-model="cipherSecurity"
+          v-model="cipher"
           clearable
         />
       </label>
