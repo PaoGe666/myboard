@@ -27,6 +27,14 @@
         >
           <PlusIcon class="h-4 w-4" />
         </button>
+        <button
+          v-if="providerSubTab === 'custom'"
+          class="btn btn-circle btn-sm"
+          :title="$t('testAllCustomNodes')"
+          @click="handlerTestCustomNodes"
+        >
+          <BoltIcon :class="['h-4 w-4', isTestingCustomNodes && 'animate-pulse']" />
+        </button>
       </div>
       <DialogWrapper
         v-if="providerSubTab === 'subscription' && providerFormOpen"
@@ -128,19 +136,30 @@ import {
 } from '@/composables/proxies'
 import { PROXY_TAB_TYPE } from '@/constant'
 import { isMiddleScreen } from '@/helper/utils'
-import { fetchProxies } from '@/assembly/proxies'
+import { fetchProxies, proxyLatencyTest } from '@/assembly/proxies'
 import { proxiesTabShow } from '@/assembly/proxies'
 import { callNodeCgi } from '@/helper/nodeCgi'
 import { callProviderCgi } from '@/helper/providerCgi'
 import { notifyRequestError } from '@/helper/requestError'
 import { showNotification } from '@/helper/notification'
-import { PlusIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, PlusIcon } from '@heroicons/vue/24/outline'
 import { disableProxiesPageTextSelect, twoColumnProxyGroup } from '@/store/settings'
 import { useResizeObserver, useSessionStorage } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
+const isTestingCustomNodes = ref(false)
+const handlerTestCustomNodes = async () => {
+  if (isTestingCustomNodes.value) return
+  isTestingCustomNodes.value = true
+  const names = customNodeNames.value
+  try {
+    await Promise.allSettled(names.map((name) => proxyLatencyTest(name, undefined, 5000)))
+  } finally {
+    isTestingCustomNodes.value = false
+  }
+}
 const setProviderSubTab = (value: string) => {
   providerSubTab.value = value as 'subscription' | 'custom'
 }

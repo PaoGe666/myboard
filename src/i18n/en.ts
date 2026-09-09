@@ -271,6 +271,8 @@ const en = {
   independentLatencyTestTip:
     "When enabled, the latency test will use URLs specified in the configuration file instead of zashboard's URL settings. Latency will be displayed independently based on the URLs set in policy groups.",
   search: 'Search',
+  testAllCustomNodes: 'Test all nodes',
+
   editCustomNode: 'Edit Node',
   deleteCustomNode: 'Delete Node',
   deleteCustomNodeMessage: 'Delete custom node {name}?',
