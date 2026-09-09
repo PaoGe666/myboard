@@ -5,7 +5,7 @@
   <img src="./readme/mobile.png" height="300">
 </p>
 
-`myboard` 是基于 [`zashboard`](https://github.com/Zephyruso/zashboard) 修改的中文自用版本，主要针对 Mihomo / OpenClash 配置做了更清晰的策略组、节点组、订阅提供商与图标展示。
+`myboard` 是基于 [`zashboard`](https://github.com/Zephyruso/zashboard)（当前对齐 **v3.26.0**）修改的中文自用版本，主要针对 Mihomo / OpenClash 配置做了更清晰的策略组、节点组、订阅提供商与图标展示，同时沿用 zashboard v3.26.0 的代理列表虚拟滚动 / 卡片头部等新渲染架构，并叠加 myboard 定制功能。
 
 ## 功能特点
 
@@ -50,7 +50,12 @@ docker run -d --name myboard -p 8080:80 myboard:latest
 
 #### 方式二：GitHub Pages
 
-仓库已内置 GitHub Pages 工作流，推送到 `main` 后会自动构建并发布 `dist/`。
+仓库已内置 GitHub Pages 工作流，推送到 `main` 后会自动构建并发布 `dist/`，同时生成两个供 OpenClash 自动更新使用的产物：
+
+- `https://paoge666.github.io/myboard/myboard.zip` —— 打包好的 UI 静态文件
+- `https://paoge666.github.io/myboard/myboard-version.json` —— 版本 / commit 元数据（myboard 的「UI 更新检测」会读取它对比）
+
+> 部署环境要求：Node.js 22+ 与 `package.json` 中 `packageManager` 声明的 pnpm 版本（构建使用 `pnpm install --frozen-lockfile`）。
 
 #### 方式三：源码构建 + 任意 Web 服务器
 
@@ -73,11 +78,23 @@ pnpm preview
 
 ---
 
-### 二、增量替换（在原版 zashboard 上替换 UI）
+### 二、增量替换（在 OpenClash / ShellCrash 上替换 UI）
 
 适用于 OpenClash、ShellCrash 等已内置原版 zashboard 的工具，只需替换前端文件，保留原有后端。
 
-以 OpenClash 为例：
+#### 方式一：external-ui 自动升级（推荐）
+
+myboard 已内置 OpenClash 的 external-ui 逻辑（升级前先写入 `external-ui` / `external-ui-name` / `external-ui-url` 配置，再触发 `/upgrade/ui`）。在 mihomo 配置中声明：
+
+```yaml
+external-ui: /usr/share/openclash/ui
+external-ui-name: myboard
+external-ui-url: https://paoge666.github.io/myboard/myboard.zip
+```
+
+重启 OpenClash 后，核心会自动下载并替换 UI。之后每次推送 `main`，Pages 会重建 `myboard.zip` 与 `myboard-version.json`，面板内置的「UI 更新检测」会自动对比并提示/升级，无需手动操作。
+
+#### 方式二：手动替换（离线 / 自定义 UI 路径）
 
 ```bash
 # 1. 克隆并构建
@@ -94,7 +111,9 @@ cp -r dist/* /etc/openclash/ui/
 /etc/init.d/openclash restart
 ```
 
-不同工具的 UI 路径不同，请根据实际工具查找对应目录。
+也可直接下载线上打包好的 `myboard.zip`（见上面的 GitHub Pages 部分）解压到 UI 目录，跳过本地构建。
+
+不同工具的 UI 路径不同，请根据实际工具查找对应目录（OpenClash 常见为 `/etc/openclash/ui/`，部分版本在 `/etc/openclash/web/`）。
 myboard 的配置文件与 zashboard 完全兼容（导出文件名统一为 `zashboard-settings.json`），替换后原有配置不会丢失。
 
 ---
