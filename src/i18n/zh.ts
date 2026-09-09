@@ -268,6 +268,21 @@ const zh: LANG_MESSAGE = {
   independentLatencyTestTip:
     '开启独立延迟测试会在测速中尽可能的使用配置文件中的url覆盖面板设置的url，并展示根据策略组设置的url获取的延迟。',
   search: '搜索',
+  editCustomNode: '编辑节点',
+  deleteCustomNode: '删除节点',
+  deleteCustomNodeMessage: '确定删除自定义节点 {name}？',
+  addCustomNode: '添加节点',
+  updateNodeSuccess: '已更新节点',
+  server: '服务器',
+  uuid: 'UUID',
+  alterId: 'alterId',
+  cipher: '加密',
+  username: '用户名',
+  sni: 'SNI',
+  transport: '传输',
+  wsPath: 'WS 路径',
+  wsHost: 'WS 主机',
+
   subscription: '订阅',
   customNodes: '自定义节点',
 

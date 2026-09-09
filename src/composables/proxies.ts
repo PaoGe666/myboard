@@ -131,6 +131,20 @@ export const customNodeNames = computed(() => {
     .sort((a, b) => a.localeCompare(b))
 })
 
+// 自定义节点编辑器对话框状态(null = 新增模式)
+export const customNodeEditorOpen = ref(false)
+export const customNodeEditorTarget = ref<Record<string, unknown> | null>(null)
+
+export const openCustomNodeEditor = (node?: Record<string, unknown> | null) => {
+  customNodeEditorTarget.value = node ?? null
+  customNodeEditorOpen.value = true
+}
+
+export const closeCustomNodeEditor = () => {
+  customNodeEditorOpen.value = false
+  customNodeEditorTarget.value = null
+}
+
 export const nodeGroupBuckets = computed(() => {
   const buckets = new Map<string, string[]>()
 

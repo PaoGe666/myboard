@@ -13,14 +13,33 @@
       <ProxiesCtrl />
       <div
         v-if="proxiesTabShow === PROXY_TAB_TYPE.PROVIDER"
-        class="px-3 pt-3 md:pr-2"
+        class="flex items-center gap-2 px-3 pt-3 md:pr-2"
       >
         <SegmentedControl
           :model-value="providerSubTab"
           @update:model-value="setProviderSubTab"
           :options="providerSubTabOptions"
         />
+        <button
+          v-if="providerSubTab === 'custom'"
+          class="btn btn-circle btn-sm"
+          :title="$t('addCustomNode')"
+          @click="openCustomNodeEditor()"
+        >
+          <PlusIcon class="h-4 w-4" />
+        </button>
       </div>
+      <DialogWrapper
+        v-if="customNodeEditorOpen"
+        v-model="customNodeEditorOpen"
+        :title="customNodeEditorTarget ? $t('editCustomNode') : $t('addCustomNode')"
+      >
+        <CustomNodeEditor
+          :initial="customNodeEditorTarget"
+          @save="handlerSaveCustomNode"
+          @cancel="closeCustomNodeEditor"
+        />
+      </DialogWrapper>
       <div
         ref="columnsRef"
         class="flex gap-3 p-3 md:pr-2"
@@ -55,14 +74,20 @@ import ProxiesCtrl from '@/components/controls/ProxiesCtrl'
 import NodeGroupBucket from '@/components/proxies/NodeGroupBucket.vue'
 import ProxyGroup from '@/components/proxies/ProxyGroup.vue'
 import ProxyGroupForMobile from '@/components/proxies/ProxyGroupForMobile.vue'
-import ProxyNodeCard from '@/components/proxies/ProxyNodeCard.vue'
+import CustomNodeCard from '@/components/proxies/CustomNodeCard.vue'
+import CustomNodeEditor from '@/components/proxies/CustomNodeEditor.vue'
 import ProxyProvider from '@/components/proxies/ProxyProvider.vue'
 import ProxyGroupChainModal from '@/components/proxies/ProxyGroupChainModal.vue'
+import DialogWrapper from '@/components/common/DialogWrapper.vue'
 import SegmentedControl from '@/components/common/SegmentedControl.vue'
 import { usePaddingForViews } from '@/composables/paddingViews'
 import {
+  closeCustomNodeEditor,
+  customNodeEditorOpen,
+  customNodeEditorTarget,
   customNodeNames,
   disableProxiesPageScroll,
+  openCustomNodeEditor,
   providerSubTab,
   renderProxiesPageItems,
 } from '@/composables/proxies'
@@ -70,6 +95,10 @@ import { PROXY_TAB_TYPE } from '@/constant'
 import { isMiddleScreen } from '@/helper/utils'
 import { fetchProxies } from '@/assembly/proxies'
 import { proxiesTabShow } from '@/assembly/proxies'
+import { callNodeCgi } from '@/helper/nodeCgi'
+import { notifyRequestError } from '@/helper/requestError'
+import { showNotification } from '@/helper/notification'
+import { PlusIcon } from '@heroicons/vue/24/outline'
 import { disableProxiesPageTextSelect, twoColumnProxyGroup } from '@/store/settings'
 import { useResizeObserver, useSessionStorage } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -87,6 +116,23 @@ const providerSubTabOptions = computed(() => [
   },
   { value: 'custom', label: t('customNodes'), count: customNodeNames.value.length },
 ])
+
+const handlerSaveCustomNode = async (node: Record<string, unknown>) => {
+  const action =
+    customNodeEditorTarget.value && customNodeEditorTarget.value['name'] ? 'update' : 'add'
+  try {
+    const res = await callNodeCgi(action, node['name'] as string, node)
+    if (!res.ok) throw new Error(res.error || 'save failed')
+    showNotification({
+      content: action === 'add' ? 'addProviderSuccess' : 'updateNodeSuccess',
+      type: 'alert-success',
+    })
+    closeCustomNodeEditor()
+    await fetchProxies()
+  } catch (e) {
+    notifyRequestError(e)
+  }
+}
 
 const { padding } = usePaddingForViews({
   offsetTop: 0,
@@ -317,7 +363,7 @@ const renderComponent = computed(() => {
   }
 
   if (cardType.value === 'custom') {
-    return ProxyNodeCard
+    return CustomNodeCard
   }
 
   if (cardType.value === 'nodeGroup') {

@@ -274,6 +274,21 @@ const ru: LANG_MESSAGE = {
   independentLatencyTestTip:
     'Включение независимого тестирования задержки попытается использовать URL-адреса, указанные в конфигурационном файле, вместо настроек URL-адресов в панели управления во время теста задержки. Задержка будет отображаться отдельно на основе URL-адресов, установленных в группах политик.',
   search: 'Поиск',
+  editCustomNode: 'Изменить узел',
+  deleteCustomNode: 'Удалить узел',
+  deleteCustomNodeMessage: 'Удалить свой узел {name}?',
+  addCustomNode: 'Добавить узел',
+  updateNodeSuccess: 'Узел обновлён',
+  server: 'Сервер',
+  uuid: 'UUID',
+  alterId: 'alterId',
+  cipher: 'Шифрование',
+  username: 'Имя',
+  sni: 'SNI',
+  transport: 'Транспорт',
+  wsPath: 'WS Путь',
+  wsHost: 'WS Хост',
+
   subscription: 'Подписки',
   customNodes: 'Свои узлы',
 
