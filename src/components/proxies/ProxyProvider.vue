@@ -42,6 +42,12 @@
           >
             <ArrowPathIcon class="h-3.5 w-3.5 opacity-60" />
           </button>
+          <button
+            class="btn btn-circle btn-ghost btn-sm text-error z-30"
+            @click.stop="deleteProviderClickHandler"
+          >
+            <TrashIcon class="h-3.5 w-3.5 opacity-60" />
+          </button>
         </div>
       </div>
       <div class="mt-2 space-y-1.5">
@@ -77,6 +83,7 @@
 
 <script setup lang="ts">
 import {
+  deleteProxyProviderAPI,
   fetchProxies,
   proxyProviderHealthCheckAPI,
   reconcileDisabledProviderSelections,
@@ -85,10 +92,12 @@ import {
 } from '@/assembly/proxies'
 import { useBounceOnVisible } from '@/composables/bouncein'
 import { useRenderProxyList } from '@/composables/renderProxies'
+import { showConfirmDialog } from '@/helper/confirmDialog'
+import { showNotification } from '@/helper/notification'
 import { notifyRequestError } from '@/helper/requestError'
 import { fromNow, prettyBytesHelper } from '@/helper/utils'
 import { providerEnabledMap } from '@/store/settings'
-import { ArrowPathIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, BoltIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import dayjs from 'dayjs'
 import { toFinite } from 'lodash'
 import { twMerge } from 'tailwind-merge'
@@ -175,6 +184,27 @@ const toggleEnabled = async () => {
   }
 
   await fetchProxies()
+}
+
+const deleteProviderClickHandler = async () => {
+  const { t } = useI18n()
+  const { confirmed } = await showConfirmDialog({
+    title: t('deleteProviderTitle', { name: props.name }),
+    message: t('deleteProviderMessage', { name: props.name }),
+    confirmButtonClass: 'btn-error',
+  })
+  if (!confirmed) return
+
+  try {
+    await deleteProxyProviderAPI(props.name)
+    await fetchProxies()
+    showNotification({
+      content: 'deleteProviderSuccess',
+      type: 'alert-success',
+    })
+  } catch (e) {
+    notifyRequestError(e)
+  }
 }
 
 const healthCheckClickHandler = async () => {

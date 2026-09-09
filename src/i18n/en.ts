@@ -271,6 +271,10 @@ const en = {
   independentLatencyTestTip:
     "When enabled, the latency test will use URLs specified in the configuration file instead of zashboard's URL settings. Latency will be displayed independently based on the URLs set in policy groups.",
   search: 'Search',
+  deleteProviderTitle: 'Delete Subscription',
+  deleteProviderMessage: 'Delete subscription {name}? Its nodes will be removed.',
+  deleteProviderSuccess: 'Subscription deleted',
+
   autoOptimize: 'Auto-Optimize Nodes',
 
   nodeGroups: 'Node Groups',

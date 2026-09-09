@@ -268,6 +268,10 @@ const zh: LANG_MESSAGE = {
   independentLatencyTestTip:
     '开启独立延迟测试会在测速中尽可能的使用配置文件中的url覆盖面板设置的url，并展示根据策略组设置的url获取的延迟。',
   search: '搜索',
+  deleteProviderTitle: '删除订阅',
+  deleteProviderMessage: '确定删除订阅 {name}？节点将从面板移除。',
+  deleteProviderSuccess: '已删除订阅',
+
   autoOptimize: '自动优化节点',
 
   nodeGroups: '节点组',
