@@ -268,6 +268,11 @@ const zh: LANG_MESSAGE = {
   independentLatencyTestTip:
     '开启独立延迟测试会在测速中尽可能的使用配置文件中的url覆盖面板设置的url，并展示根据策略组设置的url获取的延迟。',
   search: '搜索',
+  importFromShareLink: '从分享链接导入',
+  importParse: '解析并填入',
+  shareLinkImportSuccess: '已解析并填入',
+  shareLinkImportError: '无法解析该链接',
+
   testing: '正在测',
 
   testAllCustomNodes: '批量测速',

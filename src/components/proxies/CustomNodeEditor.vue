@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import SelectInput from '@/components/common/SelectInput.vue'
 import TextInput from '@/components/common/TextInput.vue'
+import { parseShareLink } from '@/helper/shareLink'
+import { showNotification } from '@/helper/notification'
 import { computed, ref } from 'vue'
 
 defineOptions({ name: 'CustomNodeEditor' })
@@ -37,6 +39,49 @@ const tls = ref(Boolean(props.initial?.['tls']))
 const network = ref(read('network', 'tcp'))
 const wsPath = ref(read('ws-opts.path', '/'))
 const wsHost = ref(read('ws-opts.headers.Host', ''))
+
+const shareLinkText = ref('')
+const shareLinkError = ref('')
+
+const applyNode = (node: Record<string, unknown>) => {
+  name.value = String(node.name ?? '')
+  type.value = String(node.type ?? 'ss')
+  server.value = String(node.server ?? '')
+  port.value = Number(node.port ?? 443)
+
+  const t = String(node.type ?? '')
+  password.value = String(node.password ?? '')
+  cipher.value = String(node.cipher ?? 'aes-128-gcm')
+  uuid.value = String(node.uuid ?? '')
+  alterId.value = Number(node.alterId ?? 0)
+  cipherSecurity.value = String((node as Record<string, unknown>)['cipher'] ?? '')
+  flow.value = String(node.flow ?? '')
+  username.value = String(node.username ?? '')
+  sni.value = String(node.sni ?? '')
+  tls.value = Boolean(node.tls) || ['trojan', 'vless', 'vmess'].includes(t)
+
+  // 传输
+  const opts = (node['ws-opts'] ?? node['h2-opts'] ?? {}) as Record<string, unknown>
+  const hostHeader =
+    (opts['headers'] as Record<string, string> | undefined)?.Host ??
+    (opts['headers'] as Record<string, string> | undefined)?.host
+  wsHost.value = String(hostHeader ?? '')
+  wsPath.value = String(opts['path'] ?? '/')
+  network.value = node['ws-opts'] ? 'ws' : node['h2-opts'] ? 'h2' : 'tcp'
+}
+
+const handlerImportLink = () => {
+  shareLinkError.value = ''
+  const result = parseShareLink(shareLinkText.value)
+  if (!result) {
+    shareLinkError.value = '无法解析该链接（暂支持 ss/vmess/vless/trojan/hysteria2/hy2/tuic）'
+    return
+  }
+  const node = Array.isArray(result) ? result[0] : result
+  applyNode(node)
+  showNotification({ content: 'shareLinkImportSuccess', type: 'alert-success' })
+  shareLinkText.value = ''
+}
 
 const isValid = computed(() =>
   Boolean(name.value.trim() && server.value.trim() && Number(port.value) > 0),
@@ -105,6 +150,38 @@ const handlerSave = () => {
 <template>
   <div class="flex flex-col gap-3 p-2 text-sm">
     <div class="card-title">{{ props.initial ? $t('editCustomNode') : $t('addCustomNode') }}</div>
+
+    <details class="bg-base-200/40 rounded-xl">
+      <summary class="text-base-content/70 cursor-pointer px-3 py-2 text-xs">
+        {{ $t('importFromShareLink') }}
+      </summary>
+      <div class="flex flex-col gap-2 px-3 pb-3">
+        <textarea
+          v-model="shareLinkText"
+          rows="3"
+          placeholder="ss:// / vmess:// / vless:// / trojan:// / hysteria2:// / hy2:// / tuic://
+（一行一条；多条时只取第一条）"
+          class="textarea textarea-bordered w-full font-mono text-xs"
+        />
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            :disabled="!shareLinkText.trim()"
+            @click="handlerImportLink"
+          >
+            {{ $t('importParse') }}
+          </button>
+          <span
+            v-if="shareLinkError"
+            class="text-error text-xs"
+          >
+            {{ shareLinkError }}
+          </span>
+        </div>
+      </div>
+    </details>
+
     <div class="settings-grid">
       <label class="setting-item">
         <span class="setting-item-label">{{ $t('providerName') }}</span>

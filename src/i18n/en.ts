@@ -271,6 +271,11 @@ const en = {
   independentLatencyTestTip:
     "When enabled, the latency test will use URLs specified in the configuration file instead of zashboard's URL settings. Latency will be displayed independently based on the URLs set in policy groups.",
   search: 'Search',
+  importFromShareLink: 'Import from share link',
+  importParse: 'Parse & fill',
+  shareLinkImportSuccess: 'Parsed and filled',
+  shareLinkImportError: 'Failed to parse link',
+
   testing: 'Testing',
 
   testAllCustomNodes: 'Test all nodes',
