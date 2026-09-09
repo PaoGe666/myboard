@@ -21,14 +21,48 @@
           :options="providerSubTabOptions"
         />
         <button
-          v-if="providerSubTab === 'custom'"
           class="btn btn-circle btn-sm"
-          :title="$t('addCustomNode')"
-          @click="openCustomNodeEditor()"
+          :title="providerSubTab === 'subscription' ? $t('addProvider') : $t('addCustomNode')"
+          @click="handlerClickAdd"
         >
           <PlusIcon class="h-4 w-4" />
         </button>
       </div>
+      <DialogWrapper
+        v-if="providerSubTab === 'subscription' && providerFormOpen"
+        v-model="providerFormOpen"
+        :title="$t('addProvider')"
+      >
+        <div class="flex flex-col gap-3 p-2 text-sm">
+          <label class="setting-item">
+            <span class="setting-item-label">{{ $t('providerName') }}</span>
+            <TextInput
+              v-model="providerFormName"
+              clearable
+            />
+          </label>
+          <label class="setting-item">
+            <span class="setting-item-label">{{ $t('providerUrl') }}</span>
+            <TextInput
+              v-model="providerFormUrl"
+              clearable
+              placeholder="https://..."
+            />
+          </label>
+          <div class="text-base-content/60 text-xs">{{ $t('addProviderHint') }}</div>
+          <button
+            class="btn btn-primary btn-sm"
+            :disabled="providerFormSubmitting"
+            @click="handlerSaveProvider"
+          >
+            <span
+              v-if="providerFormSubmitting"
+              class="loading loading-spinner loading-sm"
+            ></span>
+            {{ $t('add') }}
+          </button>
+        </div>
+      </DialogWrapper>
       <DialogWrapper
         v-if="customNodeEditorOpen"
         v-model="customNodeEditorOpen"
@@ -80,6 +114,7 @@ import ProxyProvider from '@/components/proxies/ProxyProvider.vue'
 import ProxyGroupChainModal from '@/components/proxies/ProxyGroupChainModal.vue'
 import DialogWrapper from '@/components/common/DialogWrapper.vue'
 import SegmentedControl from '@/components/common/SegmentedControl.vue'
+import TextInput from '@/components/common/TextInput.vue'
 import { usePaddingForViews } from '@/composables/paddingViews'
 import {
   closeCustomNodeEditor,
@@ -96,6 +131,7 @@ import { isMiddleScreen } from '@/helper/utils'
 import { fetchProxies } from '@/assembly/proxies'
 import { proxiesTabShow } from '@/assembly/proxies'
 import { callNodeCgi } from '@/helper/nodeCgi'
+import { callProviderCgi } from '@/helper/providerCgi'
 import { notifyRequestError } from '@/helper/requestError'
 import { showNotification } from '@/helper/notification'
 import { PlusIcon } from '@heroicons/vue/24/outline'
@@ -116,6 +152,46 @@ const providerSubTabOptions = computed(() => [
   },
   { value: 'custom', label: t('customNodes'), count: customNodeNames.value.length },
 ])
+
+// 订阅添加表单(与自定义节点共用右侧 +,按子页签切换)
+const providerFormOpen = ref(false)
+const providerFormName = ref('')
+const providerFormUrl = ref('')
+const providerFormSubmitting = ref(false)
+
+const handlerClickAdd = () => {
+  if (providerSubTab.value === 'subscription') {
+    providerFormOpen.value = true
+  } else {
+    openCustomNodeEditor()
+  }
+}
+
+const handlerSaveProvider = async () => {
+  if (providerFormSubmitting.value) return
+  if (!providerFormName.value.trim() || !providerFormUrl.value.trim()) {
+    showNotification({ content: 'addProviderRequireFields', type: 'alert-error' })
+    return
+  }
+  providerFormSubmitting.value = true
+  try {
+    const res = await callProviderCgi(
+      'add',
+      providerFormName.value.trim(),
+      providerFormUrl.value.trim(),
+    )
+    if (!res.ok) throw new Error(res.error || 'cgi failed')
+    providerFormOpen.value = false
+    providerFormName.value = ''
+    providerFormUrl.value = ''
+    await fetchProxies()
+    showNotification({ content: 'addProviderSuccess', type: 'alert-success' })
+  } catch (e) {
+    notifyRequestError(e)
+  } finally {
+    providerFormSubmitting.value = false
+  }
+}
 
 const handlerSaveCustomNode = async (node: Record<string, unknown>) => {
   const action =

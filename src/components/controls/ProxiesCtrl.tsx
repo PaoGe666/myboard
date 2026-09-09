@@ -13,8 +13,6 @@ import { nodeGroupBuckets, renderProxiesPageItems } from '@/composables/proxies'
 import { isProxyNodeSearchMode, toggleProxySearchMode } from '@/composables/proxySearch'
 import { useCtrlsBar } from '@/composables/useCtrlsBar'
 import { PROXY_SORT_TYPE, PROXY_TAB_TYPE, ROUTE_NAME, SETTINGS_MENU_KEY } from '@/constant'
-import { showNotification } from '@/helper/notification'
-import { notifyRequestError } from '@/helper/requestError'
 import { getMinCardWidth } from '@/helper/utils'
 import { isProxyFolderModeActive } from '@/store/proxyFolders'
 import {
@@ -38,7 +36,6 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   GlobeAltIcon,
-  PlusIcon,
   RectangleGroupIcon,
   WrenchScrewdriverIcon,
 } from '@heroicons/vue/24/outline'
@@ -60,38 +57,8 @@ export default defineComponent({
     const isUpgrading = ref(false)
     const isAllLatencyTesting = ref(false)
     const settingsModel = ref(false)
-    const addProviderModel = ref(false)
-    const newProviderName = ref('')
-    const newProviderUrl = ref('')
-    const isAddingProvider = ref(false)
     const { isLargeCtrlsBar } = useCtrlsBar()
 
-    const handlerAddProvider = async () => {
-      if (isAddingProvider.value) return
-      if (!newProviderName.value.trim() || !newProviderUrl.value.trim()) {
-        showNotification({ content: 'addProviderRequireFields', type: 'alert-error' })
-        return
-      }
-      isAddingProvider.value = true
-      try {
-        const { callProviderCgi } = await import('@/helper/providerCgi')
-        const cgi = await callProviderCgi(
-          'add',
-          newProviderName.value.trim(),
-          newProviderUrl.value.trim(),
-        )
-        if (!cgi.ok) throw new Error(cgi.error || 'cgi failed')
-        addProviderModel.value = false
-        newProviderName.value = ''
-        newProviderUrl.value = ''
-        await fetchProxies()
-        showNotification({ content: 'addProviderSuccess', type: 'alert-success' })
-      } catch (e) {
-        notifyRequestError(e)
-      } finally {
-        isAddingProvider.value = false
-      }
-    }
     const handlerClickUpdateAllProviders = async () => {
       if (isUpgrading.value) return
       isUpgrading.value = true
@@ -190,15 +157,6 @@ export default defineComponent({
           <ArrowPathIcon class={['h-4 w-4', isUpgrading.value && 'animate-spin']} />
         </button>
       )
-      const addProviderIcon = proxiesTabShow.value === PROXY_TAB_TYPE.PROVIDER && (
-        <button
-          class="btn btn-circle btn-sm"
-          title={t('addProvider')}
-          onClick={() => (addProviderModel.value = true)}
-        >
-          <PlusIcon class="h-4 w-4" />
-        </button>
-      )
       const modeSelect = configs.value && (
         <SelectInput
           class={['select select-sm', isLargeCtrlsBar.value ? 'min-w-40' : 'min-w-24']}
@@ -279,44 +237,6 @@ export default defineComponent({
             class="w-full pl-7"
           />
         </div>
-      )
-
-      const addProviderModal = (
-        <DialogWrapper
-          v-model={addProviderModel.value}
-          title={t('addProvider')}
-        >
-          <div class="flex flex-col gap-3 p-2 text-sm">
-            <div class="setting-item">
-              <div class="setting-item-label">{t('providerName')}</div>
-              <TextInput
-                v-model={newProviderName.value}
-                placeholder={t('providerNamePlaceholder')}
-                clearable={true}
-              />
-            </div>
-            <div class="setting-item">
-              <div class="setting-item-label">{t('providerUrl')}</div>
-              <TextInput
-                v-model={newProviderUrl.value}
-                placeholder="https://..."
-                clearable={true}
-              />
-            </div>
-            <div class="text-base-content/60 text-xs">{t('addProviderHint')}</div>
-            <button
-              class="btn btn-block btn-sm"
-              disabled={isAddingProvider.value}
-              onClick={handlerAddProvider}
-            >
-              {isAddingProvider.value ? (
-                <span class="loading loading-spinner loading-sm"></span>
-              ) : (
-                t('add')
-              )}
-            </button>
-          </div>
-        </DialogWrapper>
       )
 
       const settingsModal = (
@@ -442,13 +362,11 @@ export default defineComponent({
           <div class="flex gap-2">
             {tabs}
             {upgradeAllIcon}
-            {addProviderIcon}
           </div>
           <div class="flex w-full gap-2">
             {modeSelect}
             {searchInput}
             {settingsModal}
-            {addProviderModal}
             {toggleCollapseAll}
             {latencyTestAll}
           </div>
@@ -459,9 +377,7 @@ export default defineComponent({
           {modeSelect}
           <div class="flex flex-1">{searchInput}</div>
           {upgradeAllIcon}
-          {addProviderIcon}
           {settingsModal}
-          {addProviderModal}
           {toggleCollapseAll}
           {latencyTestAll}
         </div>
