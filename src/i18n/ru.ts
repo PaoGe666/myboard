@@ -276,11 +276,6 @@ const ru: LANG_MESSAGE = {
   search: 'Поиск',
   testing: 'Замер',
 
-  speedTest: 'Замер скорости',
-  speedTestStart: 'Запустить',
-  speedTestHint: 'Тест загрузки и отдачи по текущему каналу.',
-  speedTestFailed: 'Ошибка теста',
-
   testAllCustomNodes: 'Проверить все узлы',
 
   editCustomNode: 'Изменить узел',

@@ -270,11 +270,6 @@ const zhTW: LANG_MESSAGE = {
   search: '搜尋',
   testing: '正在測',
 
-  speedTest: '真實頻寬測速',
-  speedTestStart: '開始測速',
-  speedTestHint: '測下載+上傳，走當前出站鏈路。',
-  speedTestFailed: '測速失敗',
-
   testAllCustomNodes: '批次測速',
 
   editCustomNode: '編輯節點',

@@ -35,21 +35,7 @@
         >
           <BoltIcon :class="['h-4 w-4', isTestingCustomNodes && 'animate-pulse']" />
         </button>
-        <button
-          class="btn btn-circle btn-sm"
-          :title="$t('speedTest')"
-          @click="speedTestOpen = true"
-        >
-          <SignalIcon class="h-4 w-4" />
-        </button>
       </div>
-      <DialogWrapper
-        v-if="speedTestOpen"
-        v-model="speedTestOpen"
-        :title="$t('speedTest')"
-      >
-        <SpeedTestDialog />
-      </DialogWrapper>
       <DialogWrapper
         v-if="providerSubTab === 'subscription' && providerFormOpen"
         v-model="providerFormOpen"
@@ -134,7 +120,6 @@ import CustomNodeCard from '@/components/proxies/CustomNodeCard.vue'
 import CustomNodeEditor from '@/components/proxies/CustomNodeEditor.vue'
 import ProxyProvider from '@/components/proxies/ProxyProvider.vue'
 import ProxyGroupChainModal from '@/components/proxies/ProxyGroupChainModal.vue'
-import SpeedTestDialog from '@/components/proxies/SpeedTestDialog.vue'
 import DialogWrapper from '@/components/common/DialogWrapper.vue'
 import SegmentedControl from '@/components/common/SegmentedControl.vue'
 import TextInput from '@/components/common/TextInput.vue'
@@ -158,14 +143,13 @@ import { callNodeCgi } from '@/helper/nodeCgi'
 import { callProviderCgi } from '@/helper/providerCgi'
 import { notifyRequestError } from '@/helper/requestError'
 import { showNotification } from '@/helper/notification'
-import { BoltIcon, PlusIcon, SignalIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, PlusIcon } from '@heroicons/vue/24/outline'
 import { disableProxiesPageTextSelect, twoColumnProxyGroup } from '@/store/settings'
 import { useResizeObserver, useSessionStorage } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
-const speedTestOpen = ref(false)
 const isTestingCustomNodes = ref(false)
 
 // 简易并发信号量:同时最多 CONCURRENCY 个测速,完成后取下一个

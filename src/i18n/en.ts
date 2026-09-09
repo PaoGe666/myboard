@@ -273,11 +273,6 @@ const en = {
   search: 'Search',
   testing: 'Testing',
 
-  speedTest: 'Speed Test',
-  speedTestStart: 'Start',
-  speedTestHint: 'Test download + upload through the current outbound chain.',
-  speedTestFailed: 'Speed test failed',
-
   testAllCustomNodes: 'Test all nodes',
 
   editCustomNode: 'Edit Node',
