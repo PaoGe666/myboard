@@ -1,14 +1,6 @@
 <template>
   <div
-    ref="cardRef"
-    :class="
-      twMerge(
-        'bg-base-200 flex cursor-pointer flex-col items-start rounded-md hover:shadow-sm',
-        active ? 'bg-primary sm:hover:bg-primary/95' : 'sm:hover:bg-base-300/50',
-        isSmallCard ? 'gap-1 p-1' : 'gap-2 p-2',
-        latencyTipAnimationClass,
-      )
-    "
+    :class="cardClass"
     @contextmenu.stop.prevent="handlerLatencyTest"
   >
     <div
@@ -17,10 +9,9 @@
       @mouseenter="checkTruncation"
     >
       <ProxyIcon
-        v-if="displayIcon"
+        v-if="node?.icon"
         class="-mt-[2px] shrink-0 align-middle"
-        :icon="rawIcon"
-        :name="node.name"
+        :icon="node.icon"
         :fill="active ? 'fill-primary-content' : 'fill-base-content'"
       /><span
         v-if="active"
@@ -53,20 +44,17 @@
 
 <script setup lang="ts">
 import { PROXY_CARD_SIZE, PROXY_SORT_TYPE } from '@/constant'
-import { getPreferredProxyIcon } from '@/helper/proxyIcon'
 import { checkTruncation } from '@/helper/tooltip'
-import { scrollIntoCenter } from '@/helper/utils'
-import { getIPv6ByName, getTestUrl, proxyLatencyTest, proxyMap } from '@/store/proxies'
 import {
-  IPv6test,
-  preferBrandSvgIcon,
-  proxyCardSize,
-  proxySortType,
-  truncateProxyName,
-} from '@/store/settings'
+  highlightProxyNode,
+  highlightedProxyNode,
+  scrollNodeIntoViewKey,
+} from '@/composables/proxiesScroll'
+import { proxyLatencyTest } from '@/assembly/proxies'
+import { getIPv6ByName, getTestUrl, proxyMap } from '@/assembly/proxies'
+import { IPv6test, proxyCardSize, proxySortType, truncateProxyName } from '@/store/settings'
 import { smartWeightsMap } from '@/store/smart'
-import { twMerge } from 'tailwind-merge'
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LatencyTag from './LatencyTag.vue'
 import ProxyIcon from './ProxyIcon.vue'
@@ -78,12 +66,7 @@ const props = defineProps<{
   groupName?: string
 }>()
 
-const cardRef = ref()
 const node = computed(() => proxyMap.value[props.name])
-const rawIcon = computed(() => node.value?.icon || '')
-const displayIcon = computed(() =>
-  getPreferredProxyIcon(node.value?.name || props.name, rawIcon.value, preferBrandSvgIcon.value),
-)
 const isLatencyTesting = ref(false)
 const typeFormatter = (type: string) => {
   type = type.toLowerCase()
@@ -104,7 +87,21 @@ const typeDescription = computed(() => {
   return [type, isUDP, smartDesc, isV6].filter(Boolean).join(isSmallCard.value ? '/' : ' / ')
 })
 
-const latencyTipAnimationClass = ref<string[]>([])
+const scrollNodeIntoView = inject(scrollNodeIntoViewKey, null)
+const latencyTipAnimationClass = computed(() =>
+  highlightedProxyNode.value === props.name ? ['latency-highlight'] : [],
+)
+
+/*
+ * 这几段类名都是本组件自己写死的,唯一会打架的是底色,分支写掉就行 —— 不必再过一遍
+ * tailwind-merge。一次展开要挂几十张卡片,省的是几十次类名解析。
+ */
+const cardClass = computed(() => [
+  'relative flex cursor-pointer flex-col items-start rounded-md hover:shadow-sm',
+  props.active ? 'bg-primary/85 sm:hover:bg-primary/95' : 'bg-base-200 sm:hover:bg-base-300/50',
+  isSmallCard.value ? 'gap-1 p-1' : 'gap-2 p-2',
+  latencyTipAnimationClass.value,
+])
 const handlerLatencyTest = async () => {
   if (isLatencyTesting.value) return
 
@@ -116,27 +113,15 @@ const handlerLatencyTest = async () => {
     isLatencyTesting.value = false
   }
 
-  if (
-    [PROXY_SORT_TYPE.LATENCY_ASC, PROXY_SORT_TYPE.LATENCY_DESC].includes(proxySortType.value) &&
-    cardRef.value
-  ) {
-    const classList = ['bg-info/20!', 'transition-colors', 'duration-1500']
-
-    scrollIntoCenter(cardRef.value)
-    latencyTipAnimationClass.value = classList
-    setTimeout(() => {
-      latencyTipAnimationClass.value = []
-    }, 1500)
+  if ([PROXY_SORT_TYPE.LATENCY_ASC, PROXY_SORT_TYPE.LATENCY_DESC].includes(proxySortType.value)) {
+    // 高亮先标上:重排可能把这张卡挪出虚拟列表的渲染窗口,那时组件已经没了
+    highlightProxyNode(props.name)
+    // 等排序后的 DOM 落地再量位置,否则拿到的还是重排前的旧坐标。
+    await nextTick()
+    // 虚拟列表能定位尚未挂载的节点,位置提示交给上面的高亮。
+    scrollNodeIntoView?.(props.name)
   }
 }
-
-onMounted(() => {
-  if (props.active) {
-    setTimeout(() => {
-      scrollIntoCenter(cardRef.value)
-    }, 300)
-  }
-})
 </script>
 
 <style scoped>

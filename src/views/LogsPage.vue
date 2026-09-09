@@ -1,6 +1,18 @@
 <template>
-  <div class="relative size-full overflow-x-hidden">
+  <div
+    :class="
+      isLogTable
+        ? 'relative flex size-full flex-col overflow-hidden'
+        : 'relative size-full overflow-x-hidden'
+    "
+    :style="isLogTable ? padding : undefined"
+  >
+    <template v-if="isLogTable">
+      <LogsCtrl />
+      <LogsTable :logs="renderLogs" />
+    </template>
     <VirtualScroller
+      v-else
       :data="renderLogs"
       :size="44"
     >
@@ -18,10 +30,20 @@
 import VirtualScroller from '@/components/common/VirtualScroller.vue'
 import LogsCtrl from '@/components/controls/LogsCtrl.tsx'
 import LogsCard from '@/components/logs/LogsCard.vue'
+import LogsTable from '@/components/logs/LogsTable.vue'
+import { usePaddingForViews } from '@/composables/paddingViews'
+import { LIST_DISPLAY_STYLE } from '@/constant'
 import { toSearchRegex } from '@/helper/search'
 import { logFilter, logFilterEnabled, logFilterRegex, logTypeFilter, logs } from '@/store/logs'
+import { logDisplayStyle } from '@/store/settings'
 import type { LogWithSeq } from '@/types'
 import { computed } from 'vue'
+
+const isLogTable = computed(() => logDisplayStyle.value === LIST_DISPLAY_STYLE.TABLE)
+const { padding } = usePaddingForViews({
+  offsetTop: 0,
+  offsetBottom: 0,
+})
 
 const renderLogs = computed(() => {
   let renderLogs = logs.value

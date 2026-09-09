@@ -5,10 +5,7 @@
         {{ $t('latency') }}
       </div>
       <div class="settings-grid">
-        <div
-          v-if="isVisibleSpeedtestMode"
-          class="setting-item"
-        >
+        <SettingItem :setting-key="k.speedtestMode">
           <div class="setting-item-label">
             {{ $t('speedtestMode') }}
             <QuestionMarkCircleIcon
@@ -16,35 +13,29 @@
               @mouseenter="speedtestModeTip"
             />
           </div>
-          <select
+          <SelectInput
             class="select select-sm min-w-24"
             v-model="speedtestMode"
-          >
-            <option :value="SPEEDTEST_MODE.DASHBOARD">
-              {{ $t('speedtestModeDashboard') }}
-            </option>
-            <option :value="SPEEDTEST_MODE.CORE">
-              {{ $t('speedtestModeCore') }}
-            </option>
-          </select>
-        </div>
-        <div
-          v-if="isVisibleSpeedtestUrl"
-          class="setting-item"
+            :options="[
+              { value: SPEEDTEST_MODE.DASHBOARD, label: $t('speedtestModeDashboard') },
+              { value: SPEEDTEST_MODE.CORE, label: $t('speedtestModeCore') },
+            ]"
+          />
+        </SettingItem>
+        <SettingItem
+          :setting-key="k.speedtestUrl"
+          class="max-sm:flex-col max-sm:items-start! max-sm:py-3"
         >
           <div class="setting-item-label">
             {{ $t('speedtestUrl') }}
           </div>
           <TextInput
-            class="flex-2"
+            class="w-full flex-2"
             v-model="speedtestUrl"
             :clearable="true"
           />
-        </div>
-        <div
-          v-if="isVisibleSpeedtestTimeout"
-          class="setting-item"
-        >
+        </SettingItem>
+        <SettingItem :setting-key="k.speedtestTimeout">
           <div class="setting-item-label">
             {{ $t('speedtestTimeout') }}
           </div>
@@ -54,11 +45,8 @@
             v-model="speedtestTimeout"
           />
           ms
-        </div>
-        <div
-          v-if="isVisibleLowLatency"
-          class="setting-item"
-        >
+        </SettingItem>
+        <SettingItem :setting-key="k.lowLatencyDesc">
           <div class="setting-item-label">
             {{ $t('lowLatencyDesc') }}
           </div>
@@ -68,11 +56,8 @@
             v-model="lowLatency"
           />
           ms
-        </div>
-        <div
-          v-if="isVisibleMediumLatency"
-          class="setting-item"
-        >
+        </SettingItem>
+        <SettingItem :setting-key="k.mediumLatencyDesc">
           <div class="setting-item-label">
             {{ $t('mediumLatencyDesc') }}
           </div>
@@ -82,11 +67,8 @@
             v-model="mediumLatency"
           />
           ms
-        </div>
-        <div
-          v-if="isVisibleIpv6Test"
-          class="setting-item"
-        >
+        </SettingItem>
+        <SettingItem :setting-key="k.ipv6Test">
           <div class="setting-item-label">
             {{ $t('ipv6Test') }}
           </div>
@@ -95,11 +77,8 @@
             type="checkbox"
             v-model="IPv6test"
           />
-        </div>
-        <div
-          v-if="isVisibleIndependentLatencyTest"
-          class="setting-item"
-        >
+        </SettingItem>
+        <SettingItem :setting-key="k.independentLatencyTest">
           <div class="setting-item-label">
             {{ $t('independentLatencyTest') }}
             <QuestionMarkCircleIcon
@@ -112,54 +91,30 @@
             type="checkbox"
             v-model="independentLatencyTest"
           />
-        </div>
-        <GroupTestUrlsSettings v-if="independentLatencyTest && isVisibleGroupTestUrls" />
-        <div
-          v-if="isVisibleAutoOptimize"
-          class="setting-item"
-        >
-          <div class="setting-item-label">
-            {{ $t('autoOptimize') }}
-          </div>
-          <input
-            class="toggle"
-            type="checkbox"
-            v-model="autoOptimize"
-          />
-        </div>
+        </SettingItem>
+        <GroupTestUrlsSettings />
       </div>
     </template>
     <template v-if="hasVisibleProxyStyleItems">
       <div class="settings-section-label">
-        {{ $t('appearance') }}
+        {{ $t('settingsSectionProxyDisplay') }}
       </div>
       <div class="settings-grid">
-        <div
-          v-if="isVisibleProxyFolderMode"
-          class="setting-item"
-        >
+        <SettingItem :setting-key="k.proxyFolderMode">
           <div class="setting-item-label">
             {{ $t('proxyFolderMode') }}
           </div>
-          <select
+          <SelectInput
             class="select select-sm min-w-24"
             v-model="proxyFolderMode"
-          >
-            <option :value="FOLDER_MODE.AUTO">
-              {{ $t('folderModeAuto') }}
-            </option>
-            <option :value="FOLDER_MODE.ON">
-              {{ $t('folderModeOn') }}
-            </option>
-            <option :value="FOLDER_MODE.OFF">
-              {{ $t('folderModeOff') }}
-            </option>
-          </select>
-        </div>
-        <div
-          v-if="isVisibleTwoColumnProxyGroup"
-          class="setting-item"
-        >
+            :options="[
+              { value: FOLDER_MODE.AUTO, label: $t('folderModeAuto') },
+              { value: FOLDER_MODE.ON, label: $t('folderModeOn') },
+              { value: FOLDER_MODE.OFF, label: $t('folderModeOff') },
+            ]"
+          />
+        </SettingItem>
+        <SettingItem :setting-key="k.twoColumnProxyGroup">
           <div class="setting-item-label">
             {{ $t('twoColumnProxyGroup') }}
           </div>
@@ -168,11 +123,8 @@
             type="checkbox"
             v-model="twoColumnProxyGroup"
           />
-        </div>
-        <div
-          v-if="isVisibleTruncateProxyName"
-          class="setting-item"
-        >
+        </SettingItem>
+        <SettingItem :setting-key="k.truncateProxyName">
           <div class="setting-item-label">
             {{ $t('truncateProxyName') }}
           </div>
@@ -181,24 +133,8 @@
             type="checkbox"
             v-model="truncateProxyName"
           />
-        </div>
-        <div
-          v-if="isVisibleGroupProxiesByProvider"
-          class="setting-item"
-        >
-          <div class="setting-item-label">
-            {{ $t('groupProxiesByProvider') }}
-          </div>
-          <input
-            class="toggle"
-            type="checkbox"
-            v-model="groupProxiesByProvider"
-          />
-        </div>
-        <div
-          v-if="isVisibleDisplayGlobalByMode"
-          class="setting-item"
-        >
+        </SettingItem>
+        <SettingItem :setting-key="k.displayGlobalByMode">
           <div class="setting-item-label">
             {{ $t('displayGlobalByMode') }}
           </div>
@@ -207,72 +143,41 @@
             type="checkbox"
             v-model="displayGlobalByMode"
           />
-        </div>
-        <div
-          v-if="displayGlobalByMode && isSingBox && isVisibleCustomGlobalNode"
-          class="setting-item"
-        >
-          <div class="setting-item-label">
-            {{ $t('customGlobalNode') }}
-          </div>
-          <select
-            class="select select-sm min-w-24"
-            v-model="customGlobalNode"
-          >
-            <option
-              v-for="opt in Object.keys(proxyMap)"
-              :key="opt"
-              :value="opt"
-            >
-              {{ opt }}
-            </option>
-          </select>
-        </div>
-        <div
-          v-if="isVisibleProxyPreviewType"
-          class="setting-item"
-        >
+        </SettingItem>
+        <SettingItem :setting-key="k.proxyPreviewType">
           <div class="setting-item-label">
             {{ $t('proxyPreviewType') }}
           </div>
-          <select
+          <SelectInput
             class="select select-sm min-w-24"
             v-model="proxyPreviewType"
-          >
-            <option
-              v-for="opt in Object.values(PROXY_PREVIEW_TYPE)"
-              :key="opt"
-              :value="opt"
-            >
-              {{ $t(opt) }}
-            </option>
-          </select>
-        </div>
-        <div
-          v-if="isVisibleProxyCardSize"
-          class="setting-item"
-        >
+            :options="
+              Object.values(PROXY_PREVIEW_TYPE).map((value) => ({
+                value,
+                label: $t(value),
+              }))
+            "
+          />
+        </SettingItem>
+        <SettingItem :setting-key="k.proxyCardSize">
           <div class="setting-item-label">
             {{ $t('proxyCardSize') }}
           </div>
-          <select
+          <SelectInput
             class="select select-sm min-w-24"
             v-model="proxyCardSize"
             @change="handlerProxyCardSizeChange"
-          >
-            <option
-              v-for="opt in Object.values(PROXY_CARD_SIZE)"
-              :key="opt"
-              :value="opt"
-            >
-              {{ $t(opt) }}
-            </option>
-          </select>
-        </div>
-        <div
-          v-if="isVisibleProxyGroupIconSize"
-          class="setting-item"
-        >
+            :options="Object.values(PROXY_CARD_SIZE).map((value) => ({ value, label: $t(value) }))"
+          />
+        </SettingItem>
+      </div>
+    </template>
+    <template v-if="hasVisibleProxyAdvancedItems">
+      <div class="settings-section-label">
+        {{ $t('settingsSectionProxyAdvanced') }}
+      </div>
+      <div class="settings-grid">
+        <SettingItem :setting-key="k.proxyGroupIconSize">
           <div class="setting-item-label">
             {{ $t('proxyGroupIconSize') }}
           </div>
@@ -281,11 +186,8 @@
             class="input input-sm w-24"
             v-model="proxyGroupIconSize"
           />
-        </div>
-        <div
-          v-if="isVisibleProxyGroupIconMargin"
-          class="setting-item"
-        >
+        </SettingItem>
+        <SettingItem :setting-key="k.proxyGroupIconMargin">
           <div class="setting-item-label">
             {{ $t('proxyGroupIconMargin') }}
           </div>
@@ -294,44 +196,28 @@
             class="input input-sm w-24"
             v-model="proxyGroupIconMargin"
           />
-        </div>
-        <div
-          v-if="isVisiblePreferBrandSvgIcon"
-          class="setting-item"
-        >
-          <div class="setting-item-label">
-            {{ $t('preferBrandSvgIcon') }}
-          </div>
-          <input
-            class="toggle"
-            type="checkbox"
-            v-model="preferBrandSvgIcon"
-          />
-        </div>
-        <IconSettings v-if="isVisibleIconSettings" />
+        </SettingItem>
+        <IconSettings />
       </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { isSingBox } from '@/api'
+import SelectInput from '@/components/common/SelectInput.vue'
+import SettingItem from '@/components/settings/SettingItem.vue'
 import { useIsSettingVisible } from '@/composables/settings'
 import { PROXIES_ITEM_KEYS } from '@/config/settingsItems'
 import { FOLDER_MODE, PROXY_CARD_SIZE, PROXY_PREVIEW_TYPE, SPEEDTEST_MODE } from '@/constant'
 import { useTooltip } from '@/helper/tooltip'
 import { getMinCardWidth } from '@/helper/utils'
-import { proxyMap } from '@/store/proxies'
 import {
-  customGlobalNode,
   displayGlobalByMode,
-  groupProxiesByProvider,
   independentLatencyTest,
   IPv6test,
   lowLatency,
   mediumLatency,
   minProxyCardWidth,
-  preferBrandSvgIcon,
   proxyCardSize,
   proxyGroupIconMargin,
   proxyGroupIconSize,
@@ -342,7 +228,6 @@ import {
   truncateProxyName,
   proxyFolderMode,
   twoColumnProxyGroup,
-  autoOptimize,
 } from '@/store/settings'
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import { computed } from 'vue'
@@ -363,15 +248,11 @@ const isVisibleGroupTestUrls = useIsSettingVisible(k.groupTestUrls)
 const isVisibleTwoColumnProxyGroup = useIsSettingVisible(k.twoColumnProxyGroup)
 const isVisibleProxyFolderMode = useIsSettingVisible(k.proxyFolderMode)
 const isVisibleTruncateProxyName = useIsSettingVisible(k.truncateProxyName)
-const isVisibleAutoOptimize = useIsSettingVisible(k.autoOptimize)
-const isVisibleGroupProxiesByProvider = useIsSettingVisible(k.groupProxiesByProvider)
 const isVisibleDisplayGlobalByMode = useIsSettingVisible(k.displayGlobalByMode)
-const isVisibleCustomGlobalNode = useIsSettingVisible(k.customGlobalNode)
 const isVisibleProxyPreviewType = useIsSettingVisible(k.proxyPreviewType)
 const isVisibleProxyCardSize = useIsSettingVisible(k.proxyCardSize)
 const isVisibleProxyGroupIconSize = useIsSettingVisible(k.proxyGroupIconSize)
 const isVisibleProxyGroupIconMargin = useIsSettingVisible(k.proxyGroupIconMargin)
-const isVisiblePreferBrandSvgIcon = useIsSettingVisible(k.preferBrandSvgIcon)
 const isVisibleIconSettings = useIsSettingVisible(k.icon)
 
 const { showTip } = useTooltip()
@@ -396,8 +277,7 @@ const hasVisibleLatencyItems = computed(() => {
     isVisibleMediumLatency.value ||
     isVisibleIpv6Test.value ||
     isVisibleIndependentLatencyTest.value ||
-    (independentLatencyTest.value && isVisibleGroupTestUrls.value) ||
-    isVisibleAutoOptimize.value
+    (independentLatencyTest.value && isVisibleGroupTestUrls.value)
   )
 })
 
@@ -406,15 +286,16 @@ const hasVisibleProxyStyleItems = computed(() => {
     isVisibleTwoColumnProxyGroup.value ||
     isVisibleProxyFolderMode.value ||
     isVisibleTruncateProxyName.value ||
-    isVisibleGroupProxiesByProvider.value ||
     isVisibleDisplayGlobalByMode.value ||
-    (displayGlobalByMode.value && isSingBox.value && isVisibleCustomGlobalNode.value) ||
     isVisibleProxyPreviewType.value ||
-    isVisibleProxyCardSize.value ||
-    isVisibleProxyGroupIconSize.value ||
-    isVisibleProxyGroupIconMargin.value ||
-    isVisiblePreferBrandSvgIcon.value ||
-    isVisibleIconSettings.value
+    isVisibleProxyCardSize.value
   )
 })
+
+const hasVisibleProxyAdvancedItems = computed(
+  () =>
+    isVisibleProxyGroupIconSize.value ||
+    isVisibleProxyGroupIconMargin.value ||
+    isVisibleIconSettings.value,
+)
 </script>

@@ -1,4 +1,4 @@
-import { fetchSmartGroupWeightsAPI, fetchSmartWeightsAPI } from '@/api'
+import { fetchSmartWeightsAPI } from '@/assembly/proxies'
 import type { NodeRank } from '@/types'
 import { ref } from 'vue'
 
@@ -18,30 +18,22 @@ const restructWeights = (proxyName: string, weights: NodeRank[]) => {
   smartOrderMap.value[proxyName] = smartOrder
 }
 
-// deprecated
-const fetchSmartGroupWeights = async (proxyName: string) => {
-  const { data } = await fetchSmartGroupWeightsAPI(proxyName)
+// 权重是拉取代理列表时顺带取的,不是用户点出来的,失败一律静默。
+export const initSmartWeights = async () => {
+  let smartWeights: Record<string, NodeRank[]> | null = null
 
-  if (!data.weights?.length) return
-
-  restructWeights(proxyName, data.weights)
-}
-
-export const initSmartWeights = async (smartGroups: string[]) => {
-  const { status, data: smartWeights } = await fetchSmartWeightsAPI()
+  try {
+    smartWeights = (await fetchSmartWeightsAPI()).data.weights
+  } catch {
+    smartWeights = null
+  }
 
   smartWeightsMap.value = {}
   smartOrderMap.value = {}
 
-  if (status !== 200) {
-    // deprecated fallback
-    smartGroups.forEach((name) => {
-      fetchSmartGroupWeights(name)
-    })
-    return
-  }
+  if (!smartWeights) return
 
-  for (const [group, weights] of Object.entries(smartWeights.weights)) {
+  for (const [group, weights] of Object.entries(smartWeights)) {
     if (!weights?.length) continue
 
     restructWeights(group, weights)

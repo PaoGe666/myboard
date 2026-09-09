@@ -1,5 +1,3 @@
-import { NOT_CONNECTED } from '@/constant'
-import { isProxyGroup } from '@/helper'
 import {
   getLatencyByName,
   handlerProxySelect,
@@ -7,7 +5,9 @@ import {
   proxyGroupLatencyTest,
   proxyGroupList,
   proxyMap,
-} from '@/store/proxies'
+} from '@/assembly/proxies'
+import { NOT_CONNECTED } from '@/constant'
+import { isProxyGroup } from '@/helper'
 import { autoOptimize } from '@/store/settings'
 import { watch } from 'vue'
 

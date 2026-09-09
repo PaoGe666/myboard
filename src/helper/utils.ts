@@ -1,5 +1,5 @@
 import { MIN_PROXY_CARD_WIDTH, PROXY_CARD_SIZE } from '@/constant'
-import type { Backend } from '@/types'
+import type { Backend, BackendType } from '@/types'
 import { useMediaQuery } from '@vueuse/core'
 import dayjs from 'dayjs'
 import prettyBytes, { type Options } from 'pretty-bytes'
@@ -11,13 +11,15 @@ export const isPWA = (() => {
 })()
 
 export const prettyBytesHelper = (bytes: number, opts?: Options) => {
-  return prettyBytes(bytes, {
+  // prettyBytes 对 NaN / Infinity 是抛错的。格式化函数几乎全在渲染函数里调用,
+  // 一个脏字段抛出去就会毁掉整棵 vnode 树(而不只是这一格),故就地兜住。
+  return prettyBytes(Number.isFinite(bytes) ? bytes : 0, {
     binary: false,
     ...opts,
   })
 }
 
-export const fromNow = (timestamp: string) => {
+export const fromNow = (timestamp: string | number) => {
   return dayjs(timestamp).fromNow()
 }
 
@@ -47,7 +49,7 @@ export const exportSettings = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'zashboard-settings.json'
+  a.download = 'zashboard-settings'
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -61,12 +63,20 @@ export const resetSettings = () => {
   window.location.reload()
 }
 
-export const getUrlFromBackend = (end: Omit<Backend, 'uuid'>) => {
+export const getUrlFromBackend = (end: {
+  protocol: string
+  host: string
+  port: string
+  secondaryPath?: string
+}) => {
   return `${end.protocol}://${end.host}:${end.port}${end.secondaryPath || ''}`
 }
 
+// 探测 / 诊断打的那个地址:Clash REST 根路径。
+export const getBackendProbeUrl = (end: Omit<Backend, 'uuid'>) => getUrlFromBackend(end)
+
 export const getLabelFromBackend = (end: Omit<Backend, 'uuid'>) => {
-  return end.label || getUrlFromBackend(end)
+  return end.label || `${end.host}:${end.port}`
 }
 
 export const getMinCardWidth = (size: PROXY_CARD_SIZE) => {
@@ -75,26 +85,43 @@ export const getMinCardWidth = (size: PROXY_CARD_SIZE) => {
 
 export const PROXIES_PARENT_CLASS = 'proxies-scrollable-parent'
 
-export const scrollIntoCenter = (el: HTMLElement) => {
-  const scrollableParent = findScrollableParent(el)
+// 新格式 protocol=http/https 优先,旧格式 http / https 标记参数仍保留兼容,最后兜底当前页面协议。
+const getProtocolFromQuery = (query: URLSearchParams) => {
+  const protocol = query.get('protocol')
 
-  if (!scrollableParent) return
+  if (protocol === 'http' || protocol === 'https') {
+    return protocol
+  }
+  if (query.get('http')) {
+    return 'http'
+  }
+  if (query.get('https')) {
+    return 'https'
+  }
 
-  const elRect = el.getBoundingClientRect()
-  const parentRect = scrollableParent.getBoundingClientRect()
+  return window.location.protocol.replace(':', '')
+}
 
-  if (elRect.top >= parentRect.top && elRect.bottom <= parentRect.bottom) return
+export const getBackendFromUrl = () => {
+  const query = new URLSearchParams(
+    window.location.search || location.hash.match(/\?.*$/)?.[0]?.replace('?', ''),
+  )
 
-  const parentTop = scrollableParent.offsetTop
-  const childTop = el.offsetTop
-
-  const centerOffset =
-    childTop - parentTop - scrollableParent.clientHeight / 2 + el.clientHeight / 2
-
-  scrollableParent.scrollTo({
-    top: centerOffset,
-    behavior: 'smooth',
-  })
+  if (query.has('hostname')) {
+    return {
+      type: 'clash' as BackendType,
+      protocol: getProtocolFromQuery(query),
+      secondaryPath: query.get('secondaryPath') || '',
+      host: query.get('hostname') as string,
+      port: query.get('port') as string,
+      password: query.get('secret') || '',
+      label: query.get('label') || '',
+      disableUpgradeCore:
+        query.get('disableUpgradeCore') === '1' || query.get('disableUpgradeCore') === 'core',
+      disableTunMode: query.get('disableTunMode') === '1' || query.get('disableTunMode') === 'tun',
+    }
+  }
+  return null
 }
 
 export const findScrollableParent = (el: HTMLElement | null): HTMLElement | null => {
@@ -133,29 +160,4 @@ export const scrollToGroup = (groupName: string) => {
     top: centerOffset,
     behavior: 'smooth',
   })
-}
-
-export const getBackendFromUrl = () => {
-  const query = new URLSearchParams(
-    window.location.search || location.hash.match(/\?.*$/)?.[0]?.replace('?', ''),
-  )
-
-  if (query.has('hostname')) {
-    return {
-      protocol: query.get('http')
-        ? 'http'
-        : query.get('https')
-          ? 'https'
-          : window.location.protocol.replace(':', ''),
-      secondaryPath: query.get('secondaryPath') || '',
-      host: query.get('hostname') as string,
-      port: query.get('port') as string,
-      password: query.get('secret') || '',
-      label: query.get('label') || '',
-      disableUpgradeCore:
-        query.get('disableUpgradeCore') === '1' || query.get('disableUpgradeCore') === 'core',
-      disableTunMode: query.get('disableTunMode') === '1' || query.get('disableTunMode') === 'tun',
-    }
-  }
-  return null
 }

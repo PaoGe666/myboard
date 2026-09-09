@@ -1,6 +1,22 @@
 <template>
+  <SettingItem
+    v-if="settingKey"
+    :setting-key="settingKey"
+    :when="showTrigger"
+  >
+    <div class="setting-item-label">
+      {{ $t('sourceIPLabels') }}
+      <template v-if="sourceIPLabelList.length"> ({{ sourceIPLabelList.length }}) </template>
+    </div>
+    <button
+      class="btn btn-sm"
+      @click="dialogVisible = true"
+    >
+      <PencilSquareIcon class="h-4 w-4" />
+    </button>
+  </SettingItem>
   <div
-    v-if="showTrigger"
+    v-else-if="showTrigger"
     class="setting-item"
   >
     <div class="setting-item-label">
@@ -46,8 +62,6 @@
         :animation="150"
         :handle="'.drag-handle'"
         :item-key="'uuid'"
-        @start="disableSwipe = true"
-        @end="disableSwipe = false"
       >
         <template #item="{ element: sourceIP }">
           <div class="border-base-content/10 rounded-box border p-2.5">
@@ -75,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { disableSwipe } from '@/composables/swipe'
+import SettingItem from '@/components/settings/SettingItem.vue'
 import { sourceIPLabelList } from '@/store/settings'
 import type { SourceIPLabel } from '@/types'
 import {
@@ -97,11 +111,13 @@ const props = withDefaults(
     defaultKey?: string
     modelValue?: boolean
     showTrigger?: boolean
+    settingKey?: string
   }>(),
   {
     defaultKey: '',
     modelValue: undefined,
     showTrigger: true,
+    settingKey: '',
   },
 )
 

@@ -1,27 +1,41 @@
-import { fetchMemoryAPI, fetchTrafficAPI } from '@/api'
+import { fetchMemoryAPI, fetchTrafficAPI } from '@/assembly/overview'
 import { ref, watch } from 'vue'
-import { activeConnections } from './connections'
+import { activeConnections, downloadTotal, uploadTotal } from './connections'
+
+export interface HistoryPoint {
+  name: number
+  value: [number, number]
+  init?: boolean
+}
 
 export const timeSaved = 60
-const initValue = new Array(timeSaved).fill(0).map((v, i) => ({ name: i, value: v }))
+// 额外保留屏幕外缓冲点：最老的点在 grid 左缘外被删除,左缘滑出时才不会出现可见断线
+const bufferPoints = 2
+const savedPoints = timeSaved + bufferPoints
+
+const makeInitValue = (): HistoryPoint[] => {
+  const now = Date.now()
+
+  return new Array(savedPoints).fill(0).map((_, i) => {
+    const timestamp = now - (savedPoints - 1 - i) * 1000
+
+    return { name: timestamp, value: [timestamp, 0] as [number, number], init: true }
+  })
+}
 
 export const memory = ref<number>(0)
-export const memoryHistory = ref([...initValue])
-export const connectionsHistory = ref([...initValue])
+export const memoryHistory = ref(makeInitValue())
+export const connectionsHistory = ref(makeInitValue())
 
 export const downloadSpeed = ref<number>(0)
 export const uploadSpeed = ref<number>(0)
-export const downloadSpeedHistory = ref([...initValue])
-export const uploadSpeedHistory = ref([...initValue])
+export const downloadSpeedHistory = ref(makeInitValue())
+export const uploadSpeedHistory = ref(makeInitValue())
 
-let cancel: () => void
+let cancel: (() => void) | undefined
 
 export const initSatistic = () => {
-  cancel?.()
-
-  downloadSpeedHistory.value = [...initValue]
-  uploadSpeedHistory.value = [...initValue]
-  memoryHistory.value = [...initValue]
+  stopSatistic()
 
   const { data: memoryWsData, close: memoryWsClose } = fetchMemoryAPI<{
     inuse: number
@@ -38,22 +52,24 @@ export const initSatistic = () => {
 
       memory.value = data.inuse
       memoryHistory.value.push({
-        value: data.inuse,
+        value: [timestamp, data.inuse],
         name: timestamp,
       })
       connectionsHistory.value.push({
-        value: activeConnections.value.length,
+        value: [timestamp, activeConnections.value.length],
         name: timestamp,
       })
 
-      memoryHistory.value = memoryHistory.value.slice(-1 * timeSaved)
-      connectionsHistory.value = connectionsHistory.value.slice(-1 * timeSaved)
+      memoryHistory.value = memoryHistory.value.slice(-1 * savedPoints)
+      connectionsHistory.value = connectionsHistory.value.slice(-1 * savedPoints)
     },
   )
 
   const { data: trafficWsData, close: trafficWsClose } = fetchTrafficAPI<{
     down: number
     up: number
+    downTotal?: number
+    upTotal?: number
   }>()
   const unwatchTraffic = watch(
     () => trafficWsData.value,
@@ -64,18 +80,24 @@ export const initSatistic = () => {
 
       downloadSpeed.value = data.down
       uploadSpeed.value = data.up
+      // 总量由连接 WS 消息携带,在 store/connections 写入;
+      // 统计流带上这两个字段时才以它为准,缺失时不覆盖。
+      if (data.downTotal != null && data.upTotal != null) {
+        downloadTotal.value = data.downTotal
+        uploadTotal.value = data.upTotal
+      }
 
       downloadSpeedHistory.value.push({
-        value: data.down,
+        value: [timestamp, data.down],
         name: timestamp,
       })
       uploadSpeedHistory.value.push({
-        value: data.up,
+        value: [timestamp, data.up],
         name: timestamp,
       })
 
-      downloadSpeedHistory.value = downloadSpeedHistory.value.slice(-1 * timeSaved)
-      uploadSpeedHistory.value = uploadSpeedHistory.value.slice(-1 * timeSaved)
+      downloadSpeedHistory.value = downloadSpeedHistory.value.slice(-1 * savedPoints)
+      uploadSpeedHistory.value = uploadSpeedHistory.value.slice(-1 * savedPoints)
     },
   )
 
@@ -85,4 +107,18 @@ export const initSatistic = () => {
     unwatchMemory()
     unwatchTraffic()
   }
+}
+
+// 结束流时一并归零。这些标量原先谁也不重置,只被下一条消息覆盖 —— 新后端连不上时,
+// 侧栏与概览会一直显示上一个后端的速率 / 内存(见 store/connections 的同类注释)。
+export const stopSatistic = () => {
+  cancel?.()
+  cancel = undefined
+  memory.value = 0
+  downloadSpeed.value = 0
+  uploadSpeed.value = 0
+  downloadSpeedHistory.value = makeInitValue()
+  uploadSpeedHistory.value = makeInitValue()
+  memoryHistory.value = makeInitValue()
+  connectionsHistory.value = makeInitValue()
 }

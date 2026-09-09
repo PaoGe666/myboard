@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-base-200 home-page flex size-full"
+    class="home-page flex size-full"
     :class="sidebarLayoutCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'"
   >
     <div
@@ -20,20 +20,16 @@
       >
         <div class="absolute flex h-full w-full flex-col overflow-y-auto">
           <Transition
-            :name="(route.meta.transition as string) || 'fade'"
-            v-if="isMiddleScreen"
+            :name="pageTransitionName"
+            :mode="pageTransitionMode"
           >
             <Component :is="Component" />
           </Transition>
-          <Component
-            v-else
-            :is="Component"
-          />
         </div>
 
         <template v-if="isMiddleScreen">
           <div
-            class="bg-base-100/20 dock dock-xs z-10 h-14 w-auto shadow-sm backdrop-blur-sm"
+            class="bg-base-100/20 dock dock-xs z-10 h-14 w-auto"
             :style="{
               padding: '0',
               bottom: 'calc(var(--spacing) * 2 + env(safe-area-inset-bottom))',
@@ -61,11 +57,11 @@
             style="
               background: linear-gradient(
                 to top,
-                rgba(0, 0, 0, 0.3),
-                rgba(0, 0, 0, 0.16),
-                rgba(0, 0, 0, 0.08),
-                rgba(0, 0, 0, 0.02),
-                rgba(0, 0, 0, 0)
+                rgba(0, 0, 0, 0.18) 0%,
+                rgba(0, 0, 0, 0.1) 30%,
+                rgba(0, 0, 0, 0.04) 60%,
+                rgba(0, 0, 0, 0.01) 85%,
+                rgba(0, 0, 0, 0) 100%
               );
               height: env(safe-area-inset-bottom);
             "
@@ -73,49 +69,23 @@
         </template>
       </div>
     </RouterView>
-
-    <DialogWrapper v-model="autoSwitchBackendDialog">
-      <div class="mb-2">
-        {{ $t('currentBackendUnavailable') }}
-      </div>
-      <div class="flex justify-end gap-2">
-        <button
-          class="btn btn-sm"
-          @click="autoSwitchBackendDialog = false"
-        >
-          {{ $t('cancel') }}
-        </button>
-        <button
-          class="btn btn-primary btn-sm"
-          @click="autoSwitchBackend"
-        >
-          {{ $t('confirm') }}
-        </button>
-      </div>
-    </DialogWrapper>
   </div>
 </template>
 
 <script setup lang="ts">
-import { isBackendAvailable } from '@/api'
-import DialogWrapper from '@/components/common/DialogWrapper.vue'
+import { isBackendAvailable } from '@/assembly/backend'
+import { startBackendSession } from '@/assembly/session'
 import SideBar from '@/components/sidebar/SideBar.vue'
 import { dockTop } from '@/composables/paddingViews'
-import { useSettings } from '@/composables/settings'
+import { checkUIUpdate } from '@/assembly/version'
+import { pageTransitionMode, pageTransitionName } from '@/composables/pageTransition'
 import { useSwipeRouter } from '@/composables/swipe'
-import { PROXY_TAB_TYPE, ROUTE_ICON_MAP, RULE_TAB_TYPE } from '@/constant'
+import { ROUTE_ICON_MAP } from '@/constant'
 import { renderRoutes } from '@/helper'
-import { showNotification } from '@/helper/notification'
-import { getLabelFromBackend, isMiddleScreen } from '@/helper/utils'
-import { fetchConfigs } from '@/store/config'
-import { initConnections } from '@/store/connections'
-import { initLogs } from '@/store/logs'
-import { initSatistic } from '@/store/overview'
-import { fetchProxies, proxiesTabShow } from '@/store/proxies'
-import { fetchRules, rulesTabShow } from '@/store/rules'
+import { isMiddleScreen } from '@/helper/utils'
+import { fetchProxies } from '@/assembly/proxies'
 import { isSidebarCollapsed } from '@/store/settings'
-import { activeBackend, activeUuid, backendList } from '@/store/setup'
-import type { Backend } from '@/types'
+import { activeBackend, activeUuid } from '@/store/setup'
 import { useDocumentVisibility, useElementBounding } from '@vueuse/core'
 import { ref, watch } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
@@ -155,83 +125,21 @@ watch(
   { immediate: true },
 )
 
-watch(
-  activeUuid,
-  () => {
-    if (!activeUuid.value) return
-    rulesTabShow.value = RULE_TAB_TYPE.RULES
-    proxiesTabShow.value = PROXY_TAB_TYPE.PROXIES
-    fetchConfigs()
-    fetchProxies()
-    fetchRules()
-    initConnections()
-    initLogs()
-    initSatistic()
-  },
-  {
-    immediate: true,
-  },
-)
-
-const autoSwitchBackendDialog = ref(false)
-
-const autoSwitchBackend = async () => {
-  const otherEnds = backendList.value.filter((end) => end.uuid !== activeUuid.value)
-
-  autoSwitchBackendDialog.value = false
-  const avaliable = await Promise.race<Backend>(
-    otherEnds.map((end) => {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          reject()
-        }, 10000)
-        isBackendAvailable(end).then((res) => {
-          if (res) {
-            resolve(end)
-          }
-        })
-      })
-    }),
-  )
-
-  if (avaliable) {
-    activeUuid.value = avaliable.uuid
-    showNotification({
-      content: 'backendSwitchTo',
-      params: {
-        backend: getLabelFromBackend(avaliable),
-      },
-      type: 'alert-success',
-    })
-  }
-}
-
 const documentVisible = useDocumentVisibility()
 
+// 息屏 / 切走期间后端可能已经没了(睡眠、换网、内核重启)。回到前台先确认一次,
+// 连不上就重开会话 —— 探测失败会把 BackendConnectionError 顶出来,
+// 由它给出诊断、重试和切换后端,这里不再自己弹一个只能二选一的对话框。
 watch(
   documentVisible,
   async () => {
-    if (
-      !activeBackend.value ||
-      backendList.value.length < 2 ||
-      documentVisible.value !== 'visible'
-    ) {
-      return
-    }
-    try {
-      const activeBackendUuid = activeBackend.value.uuid
-      const isAvailable = await isBackendAvailable(activeBackend.value)
+    if (!activeBackend.value || documentVisible.value !== 'visible') return
 
-      if (activeBackendUuid !== activeUuid.value) {
-        return
-      }
+    const uuid = activeBackend.value.uuid
 
-      if (!isAvailable) {
-        autoSwitchBackendDialog.value = true
-      }
-    } catch {
-      autoSwitchBackendDialog.value = true
-    }
+    if (await isBackendAvailable(activeBackend.value)) return
+    // 探测期间用户可能已经自己切走了,别把新后端的会话也重开一遍。
+    if (uuid === activeUuid.value) startBackendSession()
   },
   {
     immediate: true,
@@ -242,8 +150,6 @@ watch(documentVisible, () => {
   if (documentVisible.value !== 'visible') return
   fetchProxies()
 })
-
-const { checkUIUpdate } = useSettings()
 
 checkUIUpdate()
 </script>

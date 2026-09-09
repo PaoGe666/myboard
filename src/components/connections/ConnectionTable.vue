@@ -5,15 +5,19 @@
     :class="{
       'select-none': isDragging,
     }"
-    @touchstart.passive.stop
-    @touchmove.passive.stop
-    @touchend.passive.stop
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove"
     @mouseup="handleMouseUp"
     @mouseleave="handleMouseUp"
   >
-    <div :style="{ height: `${totalSize}px` }">
+    <!--
+      玻璃挂在这一层（见 appearance.css）。tbody 用上下两个占位行撑出虚拟总高，
+      表格自身盒子等于总高，sticky 表头和玻璃背景才能一直跟到底部。
+    -->
+    <div
+      class="table-glass pb-6"
+      :class="isManualTable ? 'min-w-max' : 'min-w-min'"
+    >
       <table
         :class="['table', sizeOfTable, isManualTable && 'table-fixed']"
         :style="
@@ -23,7 +27,7 @@
         "
       >
         <thead
-          class="bg-base-100 border-base-300/60 sticky top-0 z-10 border-b backdrop-blur-none!"
+          class="bg-base-100 border-base-300/60 sticky top-0 z-30 border-b backdrop-blur-none!"
         >
           <tr
             v-for="headerGroup in tanstackTable.getHeaderGroups()"
@@ -117,22 +121,33 @@
               <div class="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
                 <CircleStackIcon class="h-10 w-10 opacity-60" />
                 <div class="space-y-1">
-                  <div class="text-base font-medium">{{ t('noData') }}</div>
+                  <div class="text-base">{{ t('noData') }}</div>
                 </div>
               </div>
             </td>
           </tr>
+          <!--
+            行不能脱离文档流,用上下两个撑高的空行占位代替 transform 定位,
+            tbody 高度才等于虚拟总高,sticky thead 和玻璃背景才跟得到底。
+          -->
           <tr
-            v-for="(virtualRow, index) in virtualRows"
+            v-if="paddingTop > 0"
+            :style="{ height: `${paddingTop}px` }"
+          ></tr>
+          <tr
+            v-for="virtualRow in virtualRows"
             :key="virtualRow.key.toString()"
             :style="{
               height: `${virtualRow.size}px`,
-              transform: `translateY(${virtualRow.start - index * virtualRow.size}px)`,
             }"
-            class="hover:bg-primary! hover:text-primary-content!"
+            class="hover:bg-primary/85! hover:text-primary-content!"
             :class="[
-              virtualRow.index % 2 === 0 ? 'bg-base-150' : 'bg-base-100',
+              virtualRow.index % 2 === 0 && 'table-row-stripe',
               !isDragging ? 'cursor-pointer' : 'cursor-grabbing',
+              connectionTabShow === CONNECTION_TAB_TYPE.ALL &&
+              isClosedConnection(rows[virtualRow.index].original)
+                ? 'opacity-60'
+                : '',
             ]"
             @click="handlerClickRow(rows[virtualRow.index])"
           >
@@ -197,6 +212,10 @@
               />
             </td>
           </tr>
+          <tr
+            v-if="paddingBottom > 0"
+            :style="{ height: `${paddingBottom}px` }"
+          ></tr>
         </tbody>
       </table>
     </div>
@@ -204,19 +223,37 @@
 </template>
 
 <script setup lang="ts">
-import { blockConnectionByIdAPI, disconnectByIdAPI } from '@/api'
+import {
+  blockConnectionByIdAPI,
+  disconnectByIdAPI,
+  getConnectionDisplayValue,
+} from '@/assembly/connections'
 import { useConnections } from '@/composables/connections'
 import {
+  CONNECTION_GROUPABLE_KEYS,
   CONNECTION_TAB_TYPE,
   CONNECTIONS_TABLE_ACCESSOR_KEY,
   PROXY_CHAIN_DIRECTION,
   TABLE_SIZE,
   TABLE_WIDTH_MODE,
 } from '@/constant'
-import { getConnectionDisplayValue } from '@/helper/connection'
+import {
+  getConnectionChains,
+  getConnectionDownload,
+  getConnectionSmartBlock,
+  getConnectionStart,
+  getConnectionUpload,
+} from '@/helper'
 import { backgroundImage } from '@/helper/indexeddb'
 import { showNotification } from '@/helper/notification'
-import { connectionFilter, connectionTabShow, renderConnections } from '@/store/connections'
+import { notifyRequestError } from '@/helper/requestError'
+import { useStorage } from '@/helper/storage'
+import {
+  connectionFilter,
+  connectionTabShow,
+  isClosedConnection,
+  renderConnections,
+} from '@/store/connections'
 import {
   connectionTableColumns,
   proxyChainDirection,
@@ -253,7 +290,6 @@ import {
   type SortingState,
 } from '@tanstack/vue-table'
 import { useVirtualizer } from '@tanstack/vue-virtual'
-import { useStorage } from '@vueuse/core'
 import dayjs from 'dayjs'
 import { twMerge } from 'tailwind-merge'
 import { computed, h, ref, type VNode } from 'vue'
@@ -277,6 +313,7 @@ const columnWidthMap = useStorage('config/table-column-width', {
   [CONNECTIONS_TABLE_ACCESSOR_KEY.SourcePort]: 100,
   [CONNECTIONS_TABLE_ACCESSOR_KEY.SniffHost]: 200,
   [CONNECTIONS_TABLE_ACCESSOR_KEY.Destination]: 150,
+  [CONNECTIONS_TABLE_ACCESSOR_KEY.GeoIP]: 200,
   [CONNECTIONS_TABLE_ACCESSOR_KEY.ConnectTime]: 100,
 } as Record<CONNECTIONS_TABLE_ACCESSOR_KEY, number>)
 
@@ -299,12 +336,17 @@ const highlightedCell =
     })
   }
 
-const columns: ColumnDef<Connection>[] = [
+const columnDefinitions: ColumnDef<Connection>[] = [
   {
     header: () => t(CONNECTIONS_TABLE_ACCESSOR_KEY.Close),
     enableSorting: false,
     id: CONNECTIONS_TABLE_ACCESSOR_KEY.Close,
     cell: ({ row }) => {
+      // 「全部」tab 下已关闭的连接关不掉,不给按钮。
+      if (isClosedConnection(row.original)) {
+        return null
+      }
+
       const closeButton = h(
         'button',
         {
@@ -313,7 +355,7 @@ const columns: ColumnDef<Connection>[] = [
             const connection = row.original
 
             e.stopPropagation()
-            disconnectByIdAPI(connection.id)
+            disconnectByIdAPI(connection.id).catch(notifyRequestError)
           },
         },
         [
@@ -323,7 +365,7 @@ const columns: ColumnDef<Connection>[] = [
         ],
       )
 
-      if (row.original.metadata.smartBlock === 'normal') {
+      if (getConnectionSmartBlock(row.original) === 'normal') {
         const degradeButton = h(
           'button',
           {
@@ -332,7 +374,7 @@ const columns: ColumnDef<Connection>[] = [
               const connection = row.original
 
               e.stopPropagation()
-              blockConnectionByIdAPI(connection.id)
+              blockConnectionByIdAPI(connection.id).catch(notifyRequestError)
             },
           },
           [
@@ -387,7 +429,7 @@ const columns: ColumnDef<Connection>[] = [
     cell: ({ row }) => {
       const chains: VNode[] = []
       const isReverse = proxyChainDirection.value === PROXY_CHAIN_DIRECTION.REVERSE
-      let originChains = row.original.chains
+      let originChains = getConnectionChains(row.original)
 
       if (!showFullProxyChain.value && originChains.length > 2) {
         originChains = [originChains[0], originChains[originChains.length - 1]]
@@ -422,7 +464,10 @@ const columns: ColumnDef<Connection>[] = [
     accessorFn: (original) =>
       getTableDisplayValue(original, CONNECTIONS_TABLE_ACCESSOR_KEY.Outbound),
     cell: ({ row }) => {
-      return h(ProxyName, { name: row.original.chains[0], filter: connectionFilter.value })
+      return h(ProxyName, {
+        name: getConnectionChains(row.original)[0],
+        filter: connectionFilter.value,
+      })
     },
   },
   {
@@ -433,7 +478,8 @@ const columns: ColumnDef<Connection>[] = [
       getTableDisplayValue(original, CONNECTIONS_TABLE_ACCESSOR_KEY.ConnectTime),
     cell: highlightedCell(CONNECTIONS_TABLE_ACCESSOR_KEY.ConnectTime),
     sortingFn: (prev, next) =>
-      dayjs(next.original.start).valueOf() - dayjs(prev.original.start).valueOf(),
+      dayjs(getConnectionStart(next.original)).valueOf() -
+      dayjs(getConnectionStart(prev.original)).valueOf(),
   },
   {
     header: () => t(CONNECTIONS_TABLE_ACCESSOR_KEY.DlSpeed),
@@ -463,7 +509,8 @@ const columns: ColumnDef<Connection>[] = [
     accessorFn: (original) =>
       getTableDisplayValue(original, CONNECTIONS_TABLE_ACCESSOR_KEY.Download),
     cell: highlightedCell(CONNECTIONS_TABLE_ACCESSOR_KEY.Download),
-    sortingFn: (prev, next) => prev.original.download - next.original.download,
+    sortingFn: (prev, next) =>
+      getConnectionDownload(prev.original) - getConnectionDownload(next.original),
   },
   {
     header: () => t(CONNECTIONS_TABLE_ACCESSOR_KEY.Upload),
@@ -472,7 +519,8 @@ const columns: ColumnDef<Connection>[] = [
     id: CONNECTIONS_TABLE_ACCESSOR_KEY.Upload,
     accessorFn: (original) => getTableDisplayValue(original, CONNECTIONS_TABLE_ACCESSOR_KEY.Upload),
     cell: highlightedCell(CONNECTIONS_TABLE_ACCESSOR_KEY.Upload),
-    sortingFn: (prev, next) => prev.original.upload - next.original.upload,
+    sortingFn: (prev, next) =>
+      getConnectionUpload(prev.original) - getConnectionUpload(next.original),
   },
   {
     header: () => t(CONNECTIONS_TABLE_ACCESSOR_KEY.SourceIP),
@@ -503,6 +551,12 @@ const columns: ColumnDef<Connection>[] = [
     cell: highlightedCell(CONNECTIONS_TABLE_ACCESSOR_KEY.DestinationType),
   },
   {
+    header: () => t(CONNECTIONS_TABLE_ACCESSOR_KEY.GeoIP),
+    id: CONNECTIONS_TABLE_ACCESSOR_KEY.GeoIP,
+    accessorFn: (original) => getTableDisplayValue(original, CONNECTIONS_TABLE_ACCESSOR_KEY.GeoIP),
+    cell: highlightedCell(CONNECTIONS_TABLE_ACCESSOR_KEY.GeoIP),
+  },
+  {
     header: () => t(CONNECTIONS_TABLE_ACCESSOR_KEY.RemoteAddress),
     id: CONNECTIONS_TABLE_ACCESSOR_KEY.RemoteAddress,
     accessorFn: (original) =>
@@ -517,6 +571,13 @@ const columns: ColumnDef<Connection>[] = [
     cell: highlightedCell(CONNECTIONS_TABLE_ACCESSOR_KEY.InboundUser),
   },
 ]
+
+const groupableKeySet = new Set<string>(CONNECTION_GROUPABLE_KEYS)
+const columns: ColumnDef<Connection>[] = columnDefinitions.map((column) => ({
+  ...column,
+  // 与移动卡片共用显式白名单，避免 TanStack 的隐式默认值让两端能力漂移。
+  enableGrouping: typeof column.id === 'string' && groupableKeySet.has(column.id),
+}))
 
 const grouping = useStorage<GroupingState>('config/table-grouping', [])
 const expanded = useStorage<ExpandedState>('config/table-expanded', {})
@@ -627,7 +688,16 @@ const rowVirtualizerOptions = computed(() => {
 
 const rowVirtualizer = useVirtualizer(rowVirtualizerOptions)
 const virtualRows = computed(() => rowVirtualizer.value.getVirtualItems())
-const totalSize = computed(() => rowVirtualizer.value.getTotalSize() + 24)
+const paddingTop = computed(() => virtualRows.value[0]?.start ?? 0)
+const paddingBottom = computed(() => {
+  const last = virtualRows.value[virtualRows.value.length - 1]
+
+  if (!last) {
+    return 0
+  }
+
+  return rowVirtualizer.value.getTotalSize() - last.end
+})
 
 const classMap = {
   [TABLE_SIZE.SMALL]: 'table-xs',

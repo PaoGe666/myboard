@@ -1,11 +1,16 @@
 <template>
+  <!--
+    DialogWrapper 会 teleport 到 #app-content,而那正是挂载本组件的 App 根节点 ——
+    首帧它还没进 DOM。等挂载完再渲染,与同处 App 根下的 BackendManager 一致。
+  -->
   <DialogWrapper
+    v-if="isReady"
     v-model="modalValue"
     :title="$t('updateConfigs')"
   >
     <div class="flex flex-col gap-4 p-2">
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium">{{ $t('configFilePath') }}</label>
+        <label class="text-sm">{{ $t('configFilePath') }}</label>
         <input
           class="input input-bordered input-sm w-full"
           type="text"
@@ -17,7 +22,7 @@
       <div class="divider my-0">{{ $t('or') }}</div>
 
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium">{{ $t('configPayload') }}</label>
+        <label class="text-sm">{{ $t('configPayload') }}</label>
         <textarea
           class="textarea textarea-bordered w-full font-mono text-xs"
           rows="10"
@@ -30,7 +35,7 @@
         <label class="label cursor-pointer gap-2">
           <span class="text-sm">{{ $t('forceUpdate') }}</span>
           <input
-            class="toggle toggle-sm"
+            class="toggle"
             type="checkbox"
             v-model="forceUpdate"
           />
@@ -53,15 +58,22 @@
 </template>
 
 <script setup lang="ts">
-import { updateConfigsAPI } from '@/api'
-import { showNotification } from '@/helper/notification'
-import { fetchConfigs } from '@/store/config'
-import { fetchProxies } from '@/store/proxies'
-import { fetchRules } from '@/store/rules'
-import { ref } from 'vue'
+import { updateConfigsAPI } from '@/assembly/config'
+import { notifyActionPending, showNotification } from '@/helper/notification'
+import { notifyRequestError } from '@/helper/requestError'
+import { fetchConfigs } from '@/assembly/config'
+import { fetchProxies } from '@/assembly/proxies'
+import { fetchRules } from '@/assembly/rules'
+import { onMounted, ref } from 'vue'
 import DialogWrapper from '../../common/DialogWrapper.vue'
 
 const modalValue = defineModel<boolean>()
+
+const isReady = ref(false)
+onMounted(() => {
+  isReady.value = true
+})
+
 const configPath = ref('')
 const configPayload = ref('')
 const forceUpdate = ref(false)
@@ -76,6 +88,8 @@ const reloadAll = () => {
 const handleUpdateConfigs = async () => {
   if (isUpdating.value) return
   isUpdating.value = true
+  // 弹窗点完就关,按钮上的转圈跟着一起消失 —— 得留一条提示说明动作还在跑。
+  const notifyKey = notifyActionPending('updateConfigs')
   try {
     await updateConfigsAPI(
       { path: configPath.value, payload: configPayload.value },
@@ -84,11 +98,12 @@ const handleUpdateConfigs = async () => {
     reloadAll()
     modalValue.value = false
     showNotification({
+      key: notifyKey,
       content: 'updateConfigsSuccess',
       type: 'alert-success',
     })
-  } catch {
-    // error handled by axios interceptor
+  } catch (e) {
+    notifyRequestError(e, notifyKey)
   } finally {
     isUpdating.value = false
   }

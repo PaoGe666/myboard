@@ -1,5 +1,8 @@
 <template>
-  <div class="setting-item">
+  <SettingItem
+    :setting-key="PROXIES_ITEM_KEYS.groupTestUrls"
+    :when="independentLatencyTest"
+  >
     <div class="setting-item-label">
       {{ $t('groupTestUrls') }}
       <template v-if="groupTestUrls.length"> ({{ groupTestUrls.length }}) </template>
@@ -14,7 +17,7 @@
     >
       <PencilSquareIcon class="h-4 w-4" />
     </button>
-  </div>
+  </SettingItem>
 
   <DialogWrapper
     v-model="dialogVisible"
@@ -26,17 +29,17 @@
           <div
             v-for="groupTestUrl in groupTestUrls"
             :key="groupTestUrl.uuid"
-            class="flex items-center gap-2"
+            class="flex items-center gap-2 max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto]"
           >
             <TextInput
-              class="w-32"
+              class="w-32 max-sm:col-span-2 max-sm:w-full"
               v-model="groupTestUrl.name"
               :clearable="true"
               :placeholder="$t('groupName')"
             />
-            <ArrowRightCircleIcon class="h-4 w-4 shrink-0" />
+            <ArrowRightCircleIcon class="h-4 w-4 shrink-0 max-sm:hidden" />
             <TextInput
-              class="max-w-96 flex-1"
+              class="max-w-96 flex-1 max-sm:w-full"
               v-model="groupTestUrl.url"
               :clearable="true"
               :placeholder="$t('speedtestUrl')"
@@ -50,9 +53,9 @@
           </div>
         </template>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto]">
         <TextInput
-          class="w-32"
+          class="w-32 max-sm:col-span-2 max-sm:w-full"
           v-model="newGroupTestUrl.name"
           :placeholder="$t('groupName')"
           :menus="
@@ -60,9 +63,9 @@
           "
           @keydown.enter="() => addGroupTestUrl()"
         />
-        <ArrowRightCircleIcon class="h-4 w-4 shrink-0" />
+        <ArrowRightCircleIcon class="h-4 w-4 shrink-0 max-sm:hidden" />
         <TextInput
-          class="max-w-96 flex-1"
+          class="max-w-96 flex-1 max-sm:w-full"
           v-model="newGroupTestUrl.url"
           :clearable="true"
           :placeholder="$t('speedtestUrl')"
@@ -80,9 +83,11 @@
 </template>
 
 <script setup lang="ts">
+import SettingItem from '@/components/settings/SettingItem.vue'
+import { PROXIES_ITEM_KEYS } from '@/config/settingsItems'
 import { useTooltip } from '@/helper/tooltip'
-import { proxyGroupList } from '@/store/proxies'
-import { groupTestUrls } from '@/store/settings'
+import { proxyGroupList } from '@/assembly/proxies'
+import { groupTestUrls, independentLatencyTest } from '@/store/settings'
 import {
   ArrowRightCircleIcon,
   PencilSquareIcon,

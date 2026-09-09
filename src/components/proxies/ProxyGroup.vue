@@ -95,7 +95,7 @@ import {
   hiddenGroupMap,
   proxyGroupLatencyTest,
   proxyMap,
-} from '@/store/proxies'
+} from '@/assembly/proxies'
 import {
   groupProxiesByProvider,
   manageHiddenGroup,

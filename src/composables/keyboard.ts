@@ -1,13 +1,12 @@
 import { renderRoutes } from '@/helper'
-import { showNotification } from '@/helper/notification'
-import { getLabelFromBackend } from '@/helper/utils'
-import { isSidebarCollapsed, keyboardShortcuts } from '@/store/settings'
+import { isSidebarCollapsed, keyboardShortcuts, manageHiddenGroup } from '@/store/settings'
 import { activeBackend, switchActiveBackend } from '@/store/setup'
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 export enum KEYBOARD_SHORTCUT_ACTION {
   TOGGLE_SIDEBAR = 'sidebar:toggle',
+  TOGGLE_MANAGE_HIDDEN_GROUP = 'proxies:toggle-manage-hidden-group',
   BACKEND_PREVIOUS = 'backend:previous',
   BACKEND_NEXT = 'backend:next',
   PAGE_1 = 'page:1',
@@ -17,6 +16,22 @@ export enum KEYBOARD_SHORTCUT_ACTION {
   PAGE_5 = 'page:5',
   PAGE_6 = 'page:6',
 }
+
+// 移除一个功能后,用户本地仍存着绑定到它的自定义键位。这条记录本身是惰性的
+// (按键分发只遍历 KEYBOARD_SHORTCUTS 里已知的动作,认不出的键根本进不了表),
+// 但 config/keyboard-shortcuts 会随设置一起导出和同步 —— 不清掉就会把死键位
+// 一路带到其他设备上,而且越积越多。启动时按当前的动作表裁一次。
+const pruneOrphanedShortcuts = () => {
+  const known = new Set<string>(Object.values(KEYBOARD_SHORTCUT_ACTION))
+  const entries = Object.entries(keyboardShortcuts.value)
+  const kept = entries.filter(([action]) => known.has(action))
+
+  if (kept.length !== entries.length) {
+    keyboardShortcuts.value = Object.fromEntries(kept)
+  }
+}
+
+pruneOrphanedShortcuts()
 
 export const PAGE_SHORTCUT_ACTIONS = [
   KEYBOARD_SHORTCUT_ACTION.PAGE_1,
@@ -42,6 +57,10 @@ export const KEYBOARD_SHORTCUTS = {
   [KEYBOARD_SHORTCUT_ACTION.TOGGLE_SIDEBAR]: {
     defaultKey: 'B',
     label: 'toggleSidebar',
+  },
+  [KEYBOARD_SHORTCUT_ACTION.TOGGLE_MANAGE_HIDDEN_GROUP]: {
+    defaultKey: 'H',
+    label: 'manageHiddenGroup',
   },
   [KEYBOARD_SHORTCUT_ACTION.BACKEND_PREVIOUS]: {
     defaultKey: 'P',
@@ -154,9 +173,11 @@ export const useKeyboardShortcuts = () => {
   })
 
   const getShortcutKey = (action: string) => {
-    return (
-      normalizedCustomShortcuts.value[action] || normalizeShortcut(getDefaultShortcutKey(action))
-    )
+    if (action in normalizedCustomShortcuts.value) {
+      return normalizedCustomShortcuts.value[action]
+    }
+
+    return normalizeShortcut(getDefaultShortcutKey(action))
   }
 
   return {
@@ -188,7 +209,6 @@ export const useKeyboard = () => {
     const target = event.target as HTMLElement | null
     if (
       target instanceof HTMLInputElement ||
-      target instanceof HTMLSelectElement ||
       target instanceof HTMLTextAreaElement ||
       target?.isContentEditable
     ) {
@@ -207,41 +227,24 @@ export const useKeyboard = () => {
       return
     }
 
-    if (action === KEYBOARD_SHORTCUT_ACTION.BACKEND_PREVIOUS) {
-      if (!activeBackend.value) {
-        return
-      }
-
+    if (action === KEYBOARD_SHORTCUT_ACTION.TOGGLE_MANAGE_HIDDEN_GROUP) {
       event.preventDefault()
-      const backend = switchActiveBackend(-1)
-      if (backend) {
-        showNotification({
-          content: 'backendSwitchTo',
-          params: {
-            backend: getLabelFromBackend(backend),
-          },
-          type: 'alert-success',
-        })
-      }
+      manageHiddenGroup.value = !manageHiddenGroup.value
       return
     }
 
-    if (action === KEYBOARD_SHORTCUT_ACTION.BACKEND_NEXT) {
+    if (
+      action === KEYBOARD_SHORTCUT_ACTION.BACKEND_PREVIOUS ||
+      action === KEYBOARD_SHORTCUT_ACTION.BACKEND_NEXT
+    ) {
       if (!activeBackend.value) {
         return
       }
 
       event.preventDefault()
-      const backend = switchActiveBackend(1)
-      if (backend) {
-        showNotification({
-          content: 'backendSwitchTo',
-          params: {
-            backend: getLabelFromBackend(backend),
-          },
-          type: 'alert-success',
-        })
-      }
+      const direction = action === KEYBOARD_SHORTCUT_ACTION.BACKEND_NEXT ? 1 : -1
+      // 切到哪个后端、连不连得上,由 BackendSwitchToast 统一提示。
+      switchActiveBackend(direction)
       return
     }
 

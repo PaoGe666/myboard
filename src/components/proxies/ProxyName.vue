@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { getPreferredProxyIcon } from '@/helper/proxyIcon'
 import HighlightText from '@/components/common/HighlightText.vue'
-import { proxyMap } from '@/store/proxies'
+import { proxyMap } from '@/assembly/proxies'
 import { preferBrandSvgIcon } from '@/store/settings'
 import { computed } from 'vue'
 import ProxyIcon from './ProxyIcon.vue'

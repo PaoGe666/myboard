@@ -1,18 +1,27 @@
-import { updateRuleProviderAPI } from '@/api'
+import {
+  fetchRules,
+  ruleProviderList,
+  rules,
+  rulesFilter,
+  rulesTabShow,
+  updateRuleProviderAPI,
+} from '@/assembly/rules'
 import { useCtrlsBar } from '@/composables/useCtrlsBar'
-import { RULE_TAB_TYPE } from '@/constant'
+import { LIST_DISPLAY_STYLE, RULE_TAB_TYPE } from '@/constant'
 import { showNotification } from '@/helper/notification'
-import { fetchRules, ruleProviderList, rules, rulesFilter, rulesTabShow } from '@/store/rules'
 import {
   disconnectOnRuleDisable,
   displayLatencyInRule,
   displayNowNodeInRule,
+  ruleDisplayStyle,
 } from '@/store/settings'
 import { ArrowPathIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/outline'
 import { computed, defineComponent, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CtrlsBar from '../common/CtrlsBar.vue'
 import DialogWrapper from '../common/DialogWrapper.vue'
+import SegmentedControl from '../common/SegmentedControl.vue'
+import SelectInput from '../common/SelectInput.vue'
 import TextInput from '../common/TextInput.vue'
 
 export default defineComponent({
@@ -70,23 +79,15 @@ export default defineComponent({
 
     return () => {
       const tabs = (
-        <div
-          role="tablist"
-          class="tabs-box tabs tabs-xs"
-        >
-          {tabsWithNumbers.value.map(({ type, count }) => {
-            return (
-              <a
-                role="tab"
-                key={type}
-                class={['tab', rulesTabShow.value === type && 'tab-active']}
-                onClick={() => (rulesTabShow.value = type)}
-              >
-                {t(type)} ({count})
-              </a>
-            )
-          })}
-        </div>
+        <SegmentedControl
+          modelValue={rulesTabShow.value}
+          onUpdate:modelValue={(value) => (rulesTabShow.value = value as RULE_TAB_TYPE)}
+          options={tabsWithNumbers.value.map(({ type, count }) => ({
+            value: type,
+            label: t(type),
+            count,
+          }))}
+        />
       )
       const upgradeAllIcon = rulesTabShow.value === RULE_TAB_TYPE.PROVIDER && (
         <button
@@ -121,9 +122,23 @@ export default defineComponent({
             <div class="flex flex-col gap-3 text-sm">
               <div class="settings-grid">
                 <div class="setting-item">
+                  <div class="setting-item-label">{t('ruleStyle')}</div>
+                  <SelectInput
+                    class="select select-sm min-w-24"
+                    modelValue={ruleDisplayStyle.value}
+                    onUpdate:modelValue={(value) =>
+                      (ruleDisplayStyle.value = value as LIST_DISPLAY_STYLE)
+                    }
+                    options={Object.values(LIST_DISPLAY_STYLE).map((value) => ({
+                      value,
+                      label: t(value),
+                    }))}
+                  />
+                </div>
+                <div class="setting-item">
                   <div class="setting-item-label">{t('displaySelectedNode')}</div>
                   <input
-                    class="toggle toggle-sm"
+                    class="toggle"
                     type="checkbox"
                     v-model={displayNowNodeInRule.value}
                   />
@@ -131,7 +146,7 @@ export default defineComponent({
                 <div class="setting-item">
                   <div class="setting-item-label">{t('displayLatencyNumber')}</div>
                   <input
-                    class="toggle toggle-sm"
+                    class="toggle"
                     type="checkbox"
                     v-model={displayLatencyInRule.value}
                   />
@@ -139,7 +154,7 @@ export default defineComponent({
                 <div class="setting-item">
                   <div class="setting-item-label">{t('disconnectOnRuleDisable')}</div>
                   <input
-                    class="toggle toggle-sm"
+                    class="toggle"
                     type="checkbox"
                     v-model={disconnectOnRuleDisable.value}
                   />

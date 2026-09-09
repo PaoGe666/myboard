@@ -1,94 +1,78 @@
 <template>
-  <!-- overview -->
-  <template v-if="!splitOverviewPage">
-    <OverviewCard />
-  </template>
+  <div class="text-sm">
+    <template v-if="hasVisibleCardsLayout">
+      <div class="settings-section-label">{{ $t('settingsSectionCardsLayout') }}</div>
+      <div class="settings-grid">
+        <OverviewCard v-if="!splitOverviewPage" />
+        <SettingItem :setting-key="k.splitOverviewPage">
+          <div class="setting-item-label">{{ $t('splitOverviewPage') }}</div>
+          <input
+            v-model="splitOverviewPage"
+            class="toggle"
+            type="checkbox"
+          />
+        </SettingItem>
+      </div>
+    </template>
 
-  <div
-    v-if="hasVisibleItems"
-    class="flex flex-col gap-3 text-sm"
-  >
-    <div class="settings-grid">
-      <div
-        v-if="isVisibleSplitOverviewPage"
-        class="setting-item"
-      >
-        <div class="setting-item-label">
-          {{ $t('splitOverviewPage') }}
-        </div>
-        <input
-          class="toggle"
-          type="checkbox"
-          v-model="splitOverviewPage"
-        />
+    <template v-if="hasVisibleStartupChecks">
+      <div class="settings-section-label">{{ $t('settingsSectionStartupChecks') }}</div>
+      <div class="settings-grid">
+        <SettingItem :setting-key="k.autoIPCheckWhenStart">
+          <div class="setting-item-label">{{ $t('autoIPCheckWhenStart') }}</div>
+          <input
+            v-model="autoIPCheck"
+            class="toggle"
+            type="checkbox"
+          />
+        </SettingItem>
+        <SettingItem :setting-key="k.autoConnectionCheckWhenStart">
+          <div class="setting-item-label">{{ $t('autoConnectionCheckWhenStart') }}</div>
+          <input
+            v-model="autoConnectionCheck"
+            class="toggle"
+            type="checkbox"
+          />
+        </SettingItem>
       </div>
-      <div
-        v-if="isVisibleAutoIPCheckWhenStart"
-        class="setting-item"
-      >
-        <div class="setting-item-label">
-          {{ $t('autoIPCheckWhenStart') }}
-        </div>
-        <input
-          class="toggle"
-          type="checkbox"
-          v-model="autoIPCheck"
-        />
-      </div>
-      <div
-        v-if="isVisibleAutoConnectionCheckWhenStart"
-        class="setting-item"
-      >
-        <div class="setting-item-label">
-          {{ $t('autoConnectionCheckWhenStart') }}
-        </div>
-        <input
-          class="toggle"
-          type="checkbox"
-          v-model="autoConnectionCheck"
-        />
-      </div>
-      <div
-        v-if="isVisibleShowStatisticsWhenSidebarCollapsed"
-        class="setting-item max-md:hidden"
-      >
-        <div class="setting-item-label">
-          {{ $t('showStatisticsWhenSidebarCollapsed') }}
-        </div>
-        <input
-          class="toggle"
-          type="checkbox"
-          v-model="showStatisticsWhenSidebarCollapsed"
-        />
-      </div>
-      <div
-        v-if="isVisibleNumberOfChartsInSidebar"
-        class="setting-item max-md:hidden"
-      >
-        <div class="setting-item-label">
-          {{ $t('numberOfChartsInSidebar') }}
-        </div>
-        <select
-          class="select select-sm min-w-24"
-          v-model="numberOfChartsInSidebar"
+    </template>
+
+    <template v-if="hasVisibleDesktopSidebar">
+      <div class="settings-section-label">{{ $t('settingsSectionDesktopSidebar') }}</div>
+      <div class="settings-grid">
+        <SettingItem
+          :setting-key="k.showStatisticsWhenSidebarCollapsed"
+          :when="!isMiddleScreen"
         >
-          <option
-            v-for="opt in [1, 2, 3]"
-            :key="opt"
-            :value="opt"
-          >
-            {{ opt }}
-          </option>
-        </select>
+          <div class="setting-item-label">{{ $t('showStatisticsWhenSidebarCollapsed') }}</div>
+          <input
+            v-model="showStatisticsWhenSidebarCollapsed"
+            class="toggle"
+            type="checkbox"
+          />
+        </SettingItem>
+        <SettingItem
+          :setting-key="k.numberOfChartsInSidebar"
+          :when="!isMiddleScreen"
+        >
+          <div class="setting-item-label">{{ $t('numberOfChartsInSidebar') }}</div>
+          <SelectInput
+            v-model="numberOfChartsInSidebar"
+            class="select select-sm min-w-24"
+            :options="[1, 2, 3].map((value) => ({ value, label: String(value) }))"
+          />
+        </SettingItem>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useHasAnyVisibleSetting, useIsSettingVisible } from '@/composables/settings'
-import { getItemKeysByCategory, OVERVIEW_ITEM_KEYS } from '@/config/settingsItems'
-import { SETTINGS_MENU_KEY } from '@/constant'
+import SelectInput from '@/components/common/SelectInput.vue'
+import SettingItem from '@/components/settings/SettingItem.vue'
+import { useIsSettingVisible } from '@/composables/settings'
+import { OVERVIEW_ITEM_KEYS } from '@/config/settingsItems'
+import { isMiddleScreen } from '@/helper/utils'
 import {
   autoConnectionCheck,
   autoIPCheck,
@@ -96,17 +80,23 @@ import {
   showStatisticsWhenSidebarCollapsed,
   splitOverviewPage,
 } from '@/store/settings'
+import { computed } from 'vue'
 import OverviewCard from './OverviewCard.vue'
 
 const k = OVERVIEW_ITEM_KEYS
-const isVisibleSplitOverviewPage = useIsSettingVisible(k.splitOverviewPage)
-const isVisibleAutoIPCheckWhenStart = useIsSettingVisible(k.autoIPCheckWhenStart)
-const isVisibleAutoConnectionCheckWhenStart = useIsSettingVisible(k.autoConnectionCheckWhenStart)
-const isVisibleShowStatisticsWhenSidebarCollapsed = useIsSettingVisible(
-  k.showStatisticsWhenSidebarCollapsed,
-)
-const isVisibleNumberOfChartsInSidebar = useIsSettingVisible(k.numberOfChartsInSidebar)
+const isVisibleSplitOverview = useIsSettingVisible(k.splitOverviewPage)
+const isVisibleIPCheck = useIsSettingVisible(k.autoIPCheckWhenStart)
+const isVisibleConnectionCheck = useIsSettingVisible(k.autoConnectionCheckWhenStart)
+const isVisibleSidebarStatistics = useIsSettingVisible(k.showStatisticsWhenSidebarCollapsed)
+const isVisibleSidebarCharts = useIsSettingVisible(k.numberOfChartsInSidebar)
 
-const overviewGridKeys = getItemKeysByCategory(SETTINGS_MENU_KEY.overview).slice(2)
-const hasVisibleItems = useHasAnyVisibleSetting(overviewGridKeys)
+const hasVisibleCardsLayout = computed(
+  () => isVisibleSplitOverview.value || !splitOverviewPage.value,
+)
+const hasVisibleStartupChecks = computed(
+  () => isVisibleIPCheck.value || isVisibleConnectionCheck.value,
+)
+const hasVisibleDesktopSidebar = computed(
+  () => !isMiddleScreen.value && (isVisibleSidebarStatistics.value || isVisibleSidebarCharts.value),
+)
 </script>

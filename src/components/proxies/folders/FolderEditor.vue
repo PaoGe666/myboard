@@ -26,7 +26,7 @@
     </div>
 
     <section>
-      <div class="text-base-content/70 mb-1.5 text-xs font-medium uppercase">
+      <div class="text-base-content/70 mb-1.5 text-xs uppercase">
         {{ $t('folder_rules') }}
       </div>
       <div class="flex flex-col gap-1.5">
@@ -35,29 +35,31 @@
           :key="idx"
           class="border-base-300 flex items-center gap-1.5 rounded-md border p-1.5"
         >
-          <select
+          <SelectInput
             class="select select-xs select-bordered shrink-0"
-            :value="rule.type"
-            @change="onRuleTypeChange(idx, ($event.target as HTMLSelectElement).value)"
-          >
-            <option value="auto">{{ $t('folder_rule_auto') }}</option>
-            <option value="regex">{{ $t('folder_rule_regex') }}</option>
-            <option value="excludeRegex">{{ $t('folder_rule_exclude_regex') }}</option>
-          </select>
-          <select
+            :model-value="rule.type"
+            :options="[
+              { value: 'auto', label: $t('folder_rule_auto') },
+              { value: 'regex', label: $t('folder_rule_regex') },
+              { value: 'excludeRegex', label: $t('folder_rule_exclude_regex') },
+            ]"
+            @update:model-value="onRuleTypeChange(idx, $event)"
+          />
+          <SelectInput
             v-if="rule.type === 'auto'"
             class="select select-xs select-bordered flex-1"
-            :value="(rule as Extract<FolderRule, { type: 'auto' }>).value"
-            @change="
+            :model-value="(rule as Extract<FolderRule, { type: 'auto' }>).value"
+            :options="[
+              { value: 'hasGroup', label: $t('folder_auto_hasGroup') },
+              { value: 'nodeOnly', label: $t('folder_auto_nodeOnly') },
+            ]"
+            @update:model-value="
               updateRule(idx, {
                 type: 'auto',
-                value: ($event.target as HTMLSelectElement).value as 'nodeOnly' | 'hasGroup',
+                value: $event as 'nodeOnly' | 'hasGroup',
               })
             "
-          >
-            <option value="hasGroup">{{ $t('folder_auto_hasGroup') }}</option>
-            <option value="nodeOnly">{{ $t('folder_auto_nodeOnly') }}</option>
-          </select>
+          />
           <input
             v-else
             class="input input-xs input-bordered flex-1"
@@ -89,7 +91,7 @@
     </section>
 
     <section>
-      <div class="text-base-content/70 mb-1.5 text-xs font-medium uppercase">
+      <div class="text-base-content/70 mb-1.5 text-xs uppercase">
         {{ $t('folder_preview') }} ({{ matched.length }})
       </div>
       <div class="bg-base-200/50 border-base-300 max-h-40 overflow-y-auto rounded-md border p-2">
@@ -115,9 +117,7 @@
     </section>
 
     <section>
-      <div
-        class="text-base-content/70 mb-1.5 flex items-center gap-2 text-xs font-medium uppercase"
-      >
+      <div class="text-base-content/70 mb-1.5 flex items-center gap-2 text-xs uppercase">
         <span>{{ $t('folder_manual_includes') }} ({{ folder.manualIncludes.length }})</span>
       </div>
       <input
@@ -151,7 +151,8 @@
 </template>
 
 <script setup lang="ts">
-import { proxyGroupList } from '@/store/proxies'
+import { proxyGroupList } from '@/assembly/proxies'
+import SelectInput from '@/components/common/SelectInput.vue'
 import {
   addGroupToFolder,
   folders,

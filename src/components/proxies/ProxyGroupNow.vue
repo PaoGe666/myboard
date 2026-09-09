@@ -41,7 +41,12 @@
 import { PROXY_TYPE } from '@/constant'
 import { useTooltip } from '@/helper/tooltip'
 import { scrollToGroup } from '@/helper/utils'
-import { getCurrentProxyName, getNowProxyNodeName, proxyGroupList, proxyMap } from '@/store/proxies'
+import {
+  getCurrentProxyName,
+  getNowProxyNodeName,
+  proxyGroupList,
+  proxyMap,
+} from '@/assembly/proxies'
 import { displayFinalOutbound } from '@/store/settings'
 import {
   ArrowRightCircleIcon,

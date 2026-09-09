@@ -1,12 +1,13 @@
 <template>
   <div :class="wrapperClass">
-    <button
-      class="btn btn-circle btn-sm"
-      @click="showBackendSelectorDialog = true"
-      @mouseenter="handlerMouseenterBackendSelector"
-    >
-      <ServerIcon class="h-5 w-5" />
-    </button>
+    <!--
+      展开时 CommonCtrl 里已经有一个整行的切换器了,这里不再重复;
+      折叠成一列图标时它是唯一能看到后端状态、能切换后端的入口。
+    -->
+    <BackendSwitch
+      v-if="vertical"
+      compact
+    />
     <button
       class="btn btn-circle btn-sm"
       @click="isSidebarCollapsed = !isSidebarCollapsed"
@@ -17,31 +18,14 @@
       />
     </button>
   </div>
-
-  <DialogWrapper
-    v-model="showBackendSelectorDialog"
-    box-class="max-w-173"
-    no-padding
-  >
-    <div class="bg-base-200 size-full p-4">
-      <BackendSettings />
-    </div>
-  </DialogWrapper>
 </template>
 
 <script setup lang="ts">
-import DialogWrapper from '@/components/common/DialogWrapper.vue'
-import BackendSettings from '@/components/settings/backend/BackendSettings.vue'
-import { useTooltip } from '@/helper/tooltip'
-import { getLabelFromBackend } from '@/helper/utils'
+import BackendSwitch from '@/components/settings/backend/BackendSwitch.vue'
 import { isSidebarCollapsed } from '@/store/settings'
-import { activeBackend } from '@/store/setup'
-import { ArrowLeftCircleIcon, ArrowRightCircleIcon, ServerIcon } from '@heroicons/vue/24/outline'
-import { computed, ref } from 'vue'
+import { ArrowLeftCircleIcon, ArrowRightCircleIcon } from '@heroicons/vue/24/outline'
+import { computed } from 'vue'
 
-const { showTip } = useTooltip()
-
-const showBackendSelectorDialog = ref(false)
 const props = defineProps<{
   vertical?: boolean
 }>()
@@ -51,8 +35,4 @@ const wrapperClass = computed(() => {
     ? 'flex flex-col items-center justify-center gap-2'
     : 'flex flex-row-reverse items-center justify-center gap-2'
 })
-
-const handlerMouseenterBackendSelector = (e: MouseEvent) => {
-  showTip(e, getLabelFromBackend(activeBackend.value!), { placement: 'right' })
-}
 </script>

@@ -79,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { proxyProviderHealthCheckAPI, updateProxyProviderAPI } from '@/api'
+import { proxyProviderHealthCheckAPI, updateProxyProviderAPI } from '@/assembly/proxies'
 import { useBounceOnVisible } from '@/composables/bouncein'
 import { useRenderProxyList } from '@/composables/renderProxies'
 import { fromNow, prettyBytesHelper } from '@/helper/utils'
@@ -87,7 +87,7 @@ import {
   fetchProxies,
   proxyProviederList,
   reconcileDisabledProviderSelections,
-} from '@/store/proxies'
+} from '@/assembly/proxies'
 import { providerEnabledMap } from '@/store/settings'
 import { ArrowPathIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import dayjs from 'dayjs'
@@ -103,8 +103,8 @@ const props = defineProps<{
   name: string
 }>()
 
-const proxyProvider = computed(
-  () => proxyProviederList.value.find((group) => group.name === props.name)!,
+const proxyProvider = computed(() =>
+  proxyProviederList.value.find((group) => group.name === props.name)!,
 )
 
 // 订阅启用状态，默认 true（启用）

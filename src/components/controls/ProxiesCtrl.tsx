@@ -1,11 +1,5 @@
-import { disconnectByIdAPI, isSingBox, updateProxyProviderAPI } from '@/api'
-import { nodeGroupBuckets, renderGroups } from '@/composables/proxies'
-import { useCtrlsBar } from '@/composables/useCtrlsBar'
-import { PROXY_SORT_TYPE, PROXY_TAB_TYPE, ROUTE_NAME, SETTINGS_MENU_KEY } from '@/constant'
-import { isExcludedProxyGroup, isNodeGroup } from '@/helper'
-import { getMinCardWidth } from '@/helper/utils'
-import { configs, updateConfigs } from '@/store/config'
-import { activeConnections } from '@/store/connections'
+import { configs, updateConfigs } from '@/assembly/config'
+import { disconnectByIdAPI } from '@/assembly/connections'
 import {
   allProxiesLatencyTest,
   fetchProxies,
@@ -15,7 +9,14 @@ import {
   proxiesTabShow,
   proxyMap,
   proxyProviederList,
-} from '@/store/proxies'
+  updateProxyProviderAPI,
+} from '@/assembly/proxies'
+import { nodeGroupBuckets, renderGroups } from '@/composables/proxies'
+import { useCtrlsBar } from '@/composables/useCtrlsBar'
+import { PROXY_SORT_TYPE, PROXY_TAB_TYPE, ROUTE_NAME, SETTINGS_MENU_KEY } from '@/constant'
+import { isExcludedProxyGroup, isNodeGroup } from '@/helper'
+import { getMinCardWidth } from '@/helper/utils'
+import { activeConnections } from '@/store/connections'
 import {
   automaticDisconnection,
   collapseGroupMap,
@@ -86,7 +87,7 @@ export default defineComponent({
     const handlerModeChange = (e: Event) => {
       const mode = (e.target as HTMLSelectElement).value
       updateConfigs({ mode })
-      if (isSingBox.value && automaticDisconnection.value) {
+      if (automaticDisconnection.value) {
         activeConnections.value.forEach((connection) => {
           if (connection.rule.includes('clash_mode')) {
             disconnectByIdAPI(connection.id)

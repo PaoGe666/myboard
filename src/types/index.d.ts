@@ -1,9 +1,14 @@
+// 只剩 Clash REST/WS 一种后端。字段保留是为了让旧记录的迁移与 URL 参数解析
+// 有个明确的落点,不必在每处都写字面量。
+export type BackendType = 'clash'
+
 export type Backend = {
+  type: BackendType
+  protocol: string
   host: string
   port: string
   secondaryPath: string
-  password: string
-  protocol: string
+  password: string // Clash secret
   uuid: string
   label?: string
   disableUpgradeCore?: boolean
@@ -45,12 +50,13 @@ export type Proxy = {
     }
   >
   all?: string[]
-  udp: boolean
+  udp?: boolean
   xudp?: boolean
   now: string
   fixed?: string
   icon: string
   hidden?: boolean
+  selectable?: boolean
   testUrl?: string
   'dialer-proxy'?: string
   'provider-name'?: string
@@ -102,14 +108,14 @@ export type RuleProvider = {
   vehicleType: string
 }
 
-export type ConnectionRawMessage = {
+export type ClashConnectionRawMessage = {
   id: string
   download: number
   upload: number
   chains: string[]
   rule: string
   rulePayload: string
-  start: string
+  start: string | number
   metadata: {
     destinationGeoIP: string
     destinationIP: string
@@ -139,13 +145,15 @@ export type ConnectionRawMessage = {
   }
 }
 
+export type ConnectionRawMessage = ClashConnectionRawMessage
+
 export type Connection = ConnectionRawMessage & {
   downloadSpeed: number
   uploadSpeed: number
 }
 
 export type Log = {
-  type: 'info' | 'warning' | 'error' | 'debug'
+  type: LOG_LEVEL
   payload: string
 }
 
@@ -183,4 +191,19 @@ export interface NodeRank {
   Name: string
   Rank: string
   Weight: number
+}
+
+// honk core —— GET /stats 的用户态运行时快照。
+// 该端点还会返回就绪池 / warm 资源 / TCP / Score / UDP-NFQUEUE 等内部计量
+// (完整 schema 见 honk 仓库 doc/en/reference/api.md 的「GET /stats」一节),
+// 面板只取其中的出站统计,故这里只声明用得到的部分。
+export type HonkStats = {
+  outbounds: {
+    name: string
+    totalConns: number
+    activeConns: number
+    upload: number
+    download: number
+    errors: number
+  }[]
 }
