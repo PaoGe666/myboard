@@ -4,7 +4,7 @@ const ru: LANG_MESSAGE = {
   // Navigation
   setup: 'Настройка',
   overview: 'Обзор',
-  proxies: 'Прокси',
+  proxies: 'Стратегии',
   rules: 'Правила',
   connections: 'Подключения',
   logs: 'Журнал',

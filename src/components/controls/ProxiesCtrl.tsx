@@ -153,17 +153,22 @@ export default defineComponent({
     }
 
     const tabsWithNumbers = computed(() => {
-      return Object.values(PROXY_TAB_TYPE).map((type) => {
-        return {
-          type,
-          count:
-            type === PROXY_TAB_TYPE.PROXIES
-              ? proxyGroupList.value.length
-              : type === PROXY_TAB_TYPE.NODE_GROUPS
-                ? nodeGroupBuckets.value.length
-                : proxyProviederList.value.length,
-        }
-      })
+      return (
+        Object.values(PROXY_TAB_TYPE)
+          // 无订阅时隐藏「订阅提供商」页签,策略组/节点组始终可见
+          .filter((type) => type !== PROXY_TAB_TYPE.PROVIDER || hasProviders.value)
+          .map((type) => {
+            return {
+              type,
+              count:
+                type === PROXY_TAB_TYPE.PROXIES
+                  ? proxyGroupList.value.length
+                  : type === PROXY_TAB_TYPE.NODE_GROUPS
+                    ? nodeGroupBuckets.value.length
+                    : proxyProviederList.value.length,
+            }
+          })
+      )
     })
     return () => {
       const tabs = (
@@ -434,13 +439,11 @@ export default defineComponent({
 
       const content = !isLargeCtrlsBar.value ? (
         <div class="flex flex-col gap-2 p-2">
-          {hasProviders.value && (
-            <div class="flex gap-2">
-              {tabs}
-              {upgradeAllIcon}
-              {addProviderIcon}
-            </div>
-          )}
+          <div class="flex gap-2">
+            {tabs}
+            {upgradeAllIcon}
+            {addProviderIcon}
+          </div>
           <div class="flex w-full gap-2">
             {modeSelect}
             {searchInput}
@@ -452,7 +455,7 @@ export default defineComponent({
         </div>
       ) : (
         <div class="flex gap-2 p-2">
-          {hasProviders.value && tabs}
+          {tabs}
           {modeSelect}
           <div class="flex flex-1">{searchInput}</div>
           {upgradeAllIcon}

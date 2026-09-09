@@ -4,7 +4,7 @@ const zhTW: LANG_MESSAGE = {
   // Navigation
   setup: '配置',
   overview: '概覽',
-  proxies: '代理',
+  proxies: '策略組',
   rules: '規則',
   connections: '連接',
   logs: '日誌',

@@ -2,7 +2,7 @@ const en = {
   // Navigation
   setup: 'Setup',
   overview: 'Overview',
-  proxies: 'Proxies',
+  proxies: 'Strategy Groups',
   rules: 'Rules',
   connections: 'Connections',
   logs: 'Logs',

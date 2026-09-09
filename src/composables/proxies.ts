@@ -151,7 +151,9 @@ export const renderGroups = computed(() => {
   return getRenderGroups()
 })
 
-export const renderProxyGroups = computed(getRenderProxyGroups)
+export const renderProxyGroups = computed(() =>
+  getRenderProxyGroups().filter((name) => !isNodeGroup(name)),
+)
 
 export const renderProxyProviders = computed(getRenderProxyProviders)
 

@@ -4,7 +4,7 @@ const zh: LANG_MESSAGE = {
   // Navigation
   setup: '配置',
   overview: '概览',
-  proxies: '代理',
+  proxies: '策略组',
   rules: '规则',
   connections: '连接',
   logs: '日志',
