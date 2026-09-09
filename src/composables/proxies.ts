@@ -1,12 +1,13 @@
 import { configs } from '@/assembly/config'
 import {
   getProxyGroupChains,
+  getProxyProviderName,
   proxiesTabShow,
   proxyGroupList,
   proxyMap,
   proxyProviederList,
 } from '@/assembly/proxies'
-import { GLOBAL, PROXY_TAB_TYPE } from '@/constant'
+import { GLOBAL, PROXY_TAB_TYPE, PROXY_TYPE } from '@/constant'
 import {
   getNodeGroupBucketName,
   isExcludedProxyGroup,
@@ -103,6 +104,32 @@ const getRenderGroups = () => {
 
   return filterProxyGroups(allGroups)
 }
+
+// 代理提供商页签下的二级子菜单: 订阅 / 自定义节点
+export type ProviderSubTab = 'subscription' | 'custom'
+export const providerSubTab = ref<ProviderSubTab>('subscription')
+
+// 系统/虚拟/分组类型的集合(用于识别"真正的自定义节点")
+const GROUP_OR_SYSTEM_TYPES = new Set<string>(Object.values(PROXY_TYPE))
+
+/*
+ * 自定义节点 = 配置里顶层 proxies: 手写的节点。
+ * 特征: 不是分组(无 all 或 type 非分组)、不属于任何订阅(无 provider-name)、
+ * type 是真实节点类型(ss/vmess/trojan...),且不是系统节点(DIRECT/REJECT 等)。
+ */
+export const customNodeNames = computed(() => {
+  return Object.keys(proxyMap.value)
+    .filter((name) => {
+      const node = proxyMap.value[name]
+      if (!node) return false
+      if (node.all?.length) return false
+      const type = node.type?.toLowerCase()
+      if (type && GROUP_OR_SYSTEM_TYPES.has(type)) return false
+      if (getProxyProviderName(name)) return false
+      return true
+    })
+    .sort((a, b) => a.localeCompare(b))
+})
 
 export const nodeGroupBuckets = computed(() => {
   const buckets = new Map<string, string[]>()

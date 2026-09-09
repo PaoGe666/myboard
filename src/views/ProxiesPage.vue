@@ -12,6 +12,16 @@
     >
       <ProxiesCtrl />
       <div
+        v-if="proxiesTabShow === PROXY_TAB_TYPE.PROVIDER"
+        class="px-3 pt-3 md:pr-2"
+      >
+        <SegmentedControl
+          :model-value="providerSubTab"
+          @update:model-value="setProviderSubTab"
+          :options="providerSubTabOptions"
+        />
+      </div>
+      <div
         ref="columnsRef"
         class="flex gap-3 p-3 md:pr-2"
       >
@@ -45,10 +55,17 @@ import ProxiesCtrl from '@/components/controls/ProxiesCtrl'
 import NodeGroupBucket from '@/components/proxies/NodeGroupBucket.vue'
 import ProxyGroup from '@/components/proxies/ProxyGroup.vue'
 import ProxyGroupForMobile from '@/components/proxies/ProxyGroupForMobile.vue'
+import ProxyNodeCard from '@/components/proxies/ProxyNodeCard.vue'
 import ProxyProvider from '@/components/proxies/ProxyProvider.vue'
 import ProxyGroupChainModal from '@/components/proxies/ProxyGroupChainModal.vue'
+import SegmentedControl from '@/components/common/SegmentedControl.vue'
 import { usePaddingForViews } from '@/composables/paddingViews'
-import { disableProxiesPageScroll, renderProxiesPageItems } from '@/composables/proxies'
+import {
+  customNodeNames,
+  disableProxiesPageScroll,
+  providerSubTab,
+  renderProxiesPageItems,
+} from '@/composables/proxies'
 import { PROXY_TAB_TYPE } from '@/constant'
 import { isMiddleScreen } from '@/helper/utils'
 import { fetchProxies } from '@/assembly/proxies'
@@ -56,12 +73,31 @@ import { proxiesTabShow } from '@/assembly/proxies'
 import { disableProxiesPageTextSelect, twoColumnProxyGroup } from '@/store/settings'
 import { useResizeObserver, useSessionStorage } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+const setProviderSubTab = (value: string) => {
+  providerSubTab.value = value as 'subscription' | 'custom'
+}
+const providerSubTabOptions = computed(() => [
+  {
+    value: 'subscription',
+    label: t('subscription'),
+    count: renderProxiesPageItems.value.length,
+  },
+  { value: 'custom', label: t('customNodes'), count: customNodeNames.value.length },
+])
 
 const { padding } = usePaddingForViews({
   offsetTop: 0,
   offsetBottom: 0,
 })
-const renderPageItems = renderProxiesPageItems
+const renderPageItems = computed(() => {
+  if (proxiesTabShow.value === PROXY_TAB_TYPE.PROVIDER && providerSubTab.value === 'custom') {
+    return customNodeNames.value
+  }
+  return renderProxiesPageItems.value
+})
 const proxiesRef = ref<HTMLElement | null>(null)
 
 type ScrollAnchor = {
@@ -261,7 +297,7 @@ onBeforeUnmount(() => {
 
 const cardType = computed(() => {
   if (proxiesTabShow.value === PROXY_TAB_TYPE.PROVIDER) {
-    return 'provider' as const
+    return providerSubTab.value === 'custom' ? ('custom' as const) : ('provider' as const)
   }
 
   if (proxiesTabShow.value === PROXY_TAB_TYPE.NODE_GROUPS) {
@@ -280,6 +316,10 @@ const renderComponent = computed(() => {
     return ProxyProvider
   }
 
+  if (cardType.value === 'custom') {
+    return ProxyNodeCard
+  }
+
   if (cardType.value === 'nodeGroup') {
     return NodeGroupBucket
   }
@@ -296,6 +336,7 @@ const cardVariant = computed(() => `${cardType.value}:${displayTwoColumns.value 
 const estimatedCardHeight = computed(() => {
   if (cardType.value === 'mobile') return 88
   if (cardType.value === 'nodeGroup') return 300
+  if (cardType.value === 'custom') return 64
   return 112
 })
 
