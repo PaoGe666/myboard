@@ -271,6 +271,15 @@ const en = {
   independentLatencyTestTip:
     "When enabled, the latency test will use URLs specified in the configuration file instead of zashboard's URL settings. Latency will be displayed independently based on the URLs set in policy groups.",
   search: 'Search',
+  addProvider: 'Add Subscription',
+  providerName: 'Subscription Name',
+  providerNamePlaceholder: 'e.g. Airport A',
+  providerUrl: 'Subscription URL',
+  addProviderHint: 'Adds the subscription via OpenClash config write and reloads.',
+  add: 'Add',
+  addProviderSuccess: 'Subscription added',
+  addProviderRequireFields: 'Enter name and URL',
+
   deleteProviderTitle: 'Delete Subscription',
   deleteProviderMessage: 'Delete subscription {name}? Its nodes will be removed.',
   deleteProviderSuccess: 'Subscription deleted',

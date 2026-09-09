@@ -268,6 +268,16 @@ const zh: LANG_MESSAGE = {
   independentLatencyTestTip:
     '开启独立延迟测试会在测速中尽可能的使用配置文件中的url覆盖面板设置的url，并展示根据策略组设置的url获取的延迟。',
   search: '搜索',
+  addProvider: '添加订阅',
+  providerName: '订阅名称',
+  providerNamePlaceholder: '如 机场A',
+  providerUrl: '订阅链接(URL)',
+  addProviderHint:
+    '将通过 OpenClash 写配置新增该订阅并重载(需要路由器端已安装 myboard_provider 脚本)。',
+  add: '添加',
+  addProviderSuccess: '已添加订阅',
+  addProviderRequireFields: '请填写订阅名称和链接',
+
   deleteProviderTitle: '删除订阅',
   deleteProviderMessage: '确定删除订阅 {name}？节点将从面板移除。',
   deleteProviderSuccess: '已删除订阅',

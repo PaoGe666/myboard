@@ -274,6 +274,15 @@ const ru: LANG_MESSAGE = {
   independentLatencyTestTip:
     'Включение независимого тестирования задержки попытается использовать URL-адреса, указанные в конфигурационном файле, вместо настроек URL-адресов в панели управления во время теста задержки. Задержка будет отображаться отдельно на основе URL-адресов, установленных в группах политик.',
   search: 'Поиск',
+  addProvider: 'Добавить подписку',
+  providerName: 'Имя подписки',
+  providerNamePlaceholder: 'например Airport A',
+  providerUrl: 'URL подписки',
+  addProviderHint: 'Добавляет подписку через запись конфига OpenClash и перезагружает.',
+  add: 'Добавить',
+  addProviderSuccess: 'Подписка добавлена',
+  addProviderRequireFields: 'Введите имя и URL',
+
   deleteProviderTitle: 'Удалить подписку',
   deleteProviderMessage: 'Удалить подписку {name}? Её узлы будут удалены.',
   deleteProviderSuccess: 'Подписка удалена',

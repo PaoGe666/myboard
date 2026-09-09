@@ -94,6 +94,7 @@ import { useBounceOnVisible } from '@/composables/bouncein'
 import { useRenderProxyList } from '@/composables/renderProxies'
 import { showConfirmDialog } from '@/helper/confirmDialog'
 import { showNotification } from '@/helper/notification'
+import { callProviderCgi } from '@/helper/providerCgi'
 import { notifyRequestError } from '@/helper/requestError'
 import { fromNow, prettyBytesHelper } from '@/helper/utils'
 import { providerEnabledMap } from '@/store/settings'
@@ -196,7 +197,12 @@ const deleteProviderClickHandler = async () => {
   if (!confirmed) return
 
   try {
-    await deleteProxyProviderAPI(props.name)
+    // 优先从配置中永久移除(OpenClash 经 CGI),避免重启后旧订阅复活
+    const cgi = await callProviderCgi('delete', props.name)
+    if (!cgi.ok) {
+      // CGI 不可用(非 OpenClash)时回退到 API 临时移除
+      await deleteProxyProviderAPI(props.name)
+    }
     await fetchProxies()
     showNotification({
       content: 'deleteProviderSuccess',

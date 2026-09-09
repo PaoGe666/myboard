@@ -374,6 +374,8 @@ export const providerEnabledMap = useStorage<Record<string, boolean>>(
   {},
 )
 
+export const providerCgiBase = useStorage('config/provider-cgi-base', '')
+
 export const iconReflectList = useStorage<
   {
     icon: string
