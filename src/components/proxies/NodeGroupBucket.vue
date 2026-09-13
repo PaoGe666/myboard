@@ -34,6 +34,15 @@
                 : t('unavailableGroupCount', { count: unavailableCount.toString() })
             }}
           </span>
+          <button
+            type="button"
+            class="btn btn-circle btn-ghost btn-xs ml-auto"
+            :title="t('testNodeGroup')"
+            :disabled="isTesting"
+            @click.stop="testBucket"
+          >
+            <BoltIcon :class="['h-3.5 w-3.5', isTesting && 'animate-pulse']" />
+          </button>
         </div>
         <div
           v-if="currentPaths.length"
@@ -184,8 +193,9 @@ import {
   getProxyGroupChains,
   proxyGroupList,
   proxyMap,
+  proxyGroupLatencyTest,
 } from '@/assembly/proxies'
-import { ExclamationTriangleIcon, XCircleIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ExclamationTriangleIcon, XCircleIcon } from '@heroicons/vue/24/outline'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CollapseCard from '../common/CollapseCard.vue'
@@ -203,6 +213,16 @@ const bucket = computed(() => nodeGroupBuckets.value.find((item) => item.name ==
 const groups = computed(() => bucket.value?.groups || [])
 const bucketKey = computed(() => `node-bucket:${props.name}`)
 const { t } = useI18n()
+const isTesting = ref(false)
+const testBucket = async () => {
+  if (isTesting.value) return
+  isTesting.value = true
+  try {
+    await Promise.allSettled(groups.value.map((groupName) => proxyGroupLatencyTest(groupName)))
+  } finally {
+    isTesting.value = false
+  }
+}
 const directSelectedGroupMap = computed(() => {
   const selectedMap = new Map<string, number>()
 

@@ -78,6 +78,7 @@
       >
         <CustomNodeEditor
           :initial="customNodeEditorTarget"
+          :group-names="proxyGroupList"
           @save="handlerSaveCustomNode"
           @cancel="closeCustomNodeEditor"
         />
@@ -138,7 +139,7 @@ import {
 import { PROXY_TAB_TYPE } from '@/constant'
 import { isMiddleScreen } from '@/helper/utils'
 import { fetchProxies, proxyLatencyTest } from '@/assembly/proxies'
-import { proxiesTabShow } from '@/assembly/proxies'
+import { proxiesTabShow, proxyGroupList } from '@/assembly/proxies'
 import { callNodeCgi } from '@/helper/nodeCgi'
 import { callProviderCgi } from '@/helper/providerCgi'
 import { notifyRequestError } from '@/helper/requestError'
@@ -232,9 +233,13 @@ const handlerSaveProvider = async () => {
 const handlerSaveCustomNode = async (node: Record<string, unknown>) => {
   const originalName = customNodeEditorTarget.value?.['name'] as string | undefined
   const action = originalName ? 'update' : 'add'
+  const nodePayload = { ...node }
+  const selectedGroup = nodePayload['__myboardGroupName'] as string | undefined
+  delete nodePayload['__myboardGroupName']
+  if (selectedGroup) nodePayload.__myboardGroupName = selectedGroup
   try {
     // update 用旧名称定位,允许用户在编辑器内修改节点名称。
-    const res = await callNodeCgi(action, originalName || (node['name'] as string), node)
+    const res = await callNodeCgi(action, originalName || (node['name'] as string), nodePayload)
     if (!res.ok) throw new Error(res.error || 'save failed')
     showNotification({
       content: action === 'add' ? 'addProviderSuccess' : 'updateNodeSuccess',

@@ -282,6 +282,7 @@ const ru: LANG_MESSAGE = {
   testing: 'Замер',
 
   testAllCustomNodes: 'Проверить все узлы',
+  testNodeGroup: 'Проверить эту группу узлов',
 
   editCustomNode: 'Изменить узел',
   deleteCustomNode: 'Удалить узел',

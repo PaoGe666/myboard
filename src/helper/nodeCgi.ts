@@ -5,6 +5,7 @@ export type NodeCgiResult = {
   result?: string
   error?: string
   node?: Record<string, unknown>
+  group?: string
 }
 
 const buildNodeCgiUrl = () =>
@@ -41,5 +42,5 @@ export const getNodeConfig = async (name: string): Promise<Record<string, unknow
     throw new Error(result.error || '读取节点配置失败')
   }
 
-  return result.node
+  return result.group ? { ...result.node, __myboardGroupName: result.group } : result.node
 }

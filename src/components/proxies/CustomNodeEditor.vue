@@ -9,6 +9,7 @@ defineOptions({ name: 'CustomNodeEditor' })
 
 const props = defineProps<{
   initial?: Record<string, unknown> | null
+  groupNames?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -47,6 +48,7 @@ const realityPublicKey = ref(String(initialReality['public-key'] ?? ''))
 const realityShortId = ref(String(initialReality['short-id'] ?? ''))
 const dialerProxy = ref(read('dialer-proxy'))
 const udp = ref(Boolean(props.initial?.udp))
+const groupName = ref(String(props.initial?.['__myboardGroupName'] ?? ''))
 const rawConfigText = ref(props.initial ? JSON.stringify(props.initial, null, 2) : '')
 
 const shareLinkText = ref('')
@@ -73,6 +75,7 @@ const applyNode = (node: Record<string, unknown>) => {
   realityShortId.value = String(reality['short-id'] ?? '')
   dialerProxy.value = String(node['dialer-proxy'] ?? '')
   udp.value = Boolean(node.udp)
+  groupName.value = String(node['__myboardGroupName'] ?? '')
   tls.value = Boolean(node.tls) || ['trojan', 'vless', 'vmess'].includes(t)
 
   // 传输
@@ -83,7 +86,9 @@ const applyNode = (node: Record<string, unknown>) => {
   wsHost.value = String(hostHeader ?? '')
   wsPath.value = String(opts['path'] ?? '/')
   network.value = node['ws-opts'] ? 'ws' : node['h2-opts'] ? 'h2' : 'tcp'
-  rawConfigText.value = JSON.stringify(node, null, 2)
+  const rawNode = { ...node }
+  delete rawNode['__myboardGroupName']
+  rawConfigText.value = JSON.stringify(rawNode, null, 2)
 }
 
 const handlerImportLink = () => {
@@ -113,6 +118,7 @@ const buildNode = (): Record<string, unknown> => {
       // 表单字段仍可保存,无效 JSON 不覆盖原始配置。
     }
   }
+  delete node['__myboardGroupName']
   Object.assign(node, {
     name: name.value.trim(),
     type: type.value,
@@ -120,6 +126,7 @@ const buildNode = (): Record<string, unknown> => {
     port: Number(port.value),
     udp: udp.value,
   })
+  if (groupName.value) node['__myboardGroupName'] = groupName.value
 
   switch (type.value) {
     case 'ss':
@@ -225,6 +232,19 @@ const handlerSave = () => {
         <TextInput
           v-model="name"
           clearable
+        />
+      </label>
+      <label
+        v-if="props.groupNames?.length"
+        class="setting-item"
+      >
+        <span class="setting-item-label">{{ $t('nodeGroup') }}</span>
+        <SelectInput
+          v-model="groupName"
+          :options="[
+            { value: '', label: $t('auto') },
+            ...props.groupNames.map((value) => ({ value, label: value })),
+          ]"
         />
       </label>
       <label

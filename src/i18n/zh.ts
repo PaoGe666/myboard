@@ -276,6 +276,7 @@ const zh: LANG_MESSAGE = {
   testing: '正在测',
 
   testAllCustomNodes: '批量测速',
+  testNodeGroup: '测试此节点组',
 
   editCustomNode: '编辑节点',
   deleteCustomNode: '删除节点',

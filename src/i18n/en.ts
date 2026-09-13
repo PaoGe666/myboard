@@ -279,6 +279,7 @@ const en = {
   testing: 'Testing',
 
   testAllCustomNodes: 'Test all nodes',
+  testNodeGroup: 'Test this node group',
 
   editCustomNode: 'Edit Node',
   deleteCustomNode: 'Delete Node',

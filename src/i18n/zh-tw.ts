@@ -276,6 +276,7 @@ const zhTW: LANG_MESSAGE = {
   testing: '正在測',
 
   testAllCustomNodes: '批次測速',
+  testNodeGroup: '測試此節點組',
 
   editCustomNode: '編輯節點',
   deleteCustomNode: '刪除節點',
