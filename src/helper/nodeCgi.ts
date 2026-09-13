@@ -4,6 +4,7 @@ export type NodeCgiResult = {
   ok: boolean
   result?: string
   error?: string
+  node?: Record<string, unknown>
 }
 
 const buildNodeCgiUrl = () =>
@@ -26,4 +27,19 @@ export const callNodeCgi = async (
   })
 
   return (await res.json()) as NodeCgiResult
+}
+
+export const getNodeConfig = async (name: string): Promise<Record<string, unknown>> => {
+  const res = await fetch(buildNodeCgiUrl(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'get', name }),
+  })
+  const result = (await res.json()) as NodeCgiResult
+
+  if (!res.ok || !result.ok || !result.node) {
+    throw new Error(result.error || '读取节点配置失败')
+  }
+
+  return result.node
 }

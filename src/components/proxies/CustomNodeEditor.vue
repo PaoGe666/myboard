@@ -37,7 +37,17 @@ const tls = ref(Boolean(props.initial?.['tls']))
 // 传输 ws / http
 const network = ref(read('network', 'tcp'))
 const wsPath = ref(read('ws-opts.path', '/'))
-const wsHost = ref(read('ws-opts.headers.Host', ''))
+const initialReality = (props.initial?.['reality-opts'] ?? {}) as Record<string, unknown>
+const initialWs = (props.initial?.['ws-opts'] ?? {}) as Record<string, unknown>
+const initialWsHeaders = (initialWs.headers ?? {}) as Record<string, unknown>
+const wsHost = ref(String(initialWsHeaders.Host ?? initialWsHeaders.host ?? ''))
+const servername = ref(read('servername', read('sni')))
+const fingerprint = ref(read('client-fingerprint'))
+const realityPublicKey = ref(String(initialReality['public-key'] ?? ''))
+const realityShortId = ref(String(initialReality['short-id'] ?? ''))
+const dialerProxy = ref(read('dialer-proxy'))
+const udp = ref(Boolean(props.initial?.udp))
+const rawConfigText = ref(props.initial ? JSON.stringify(props.initial, null, 2) : '')
 
 const shareLinkText = ref('')
 const shareLinkError = ref('')
@@ -56,6 +66,13 @@ const applyNode = (node: Record<string, unknown>) => {
   flow.value = String(node.flow ?? '')
   username.value = String(node.username ?? '')
   sni.value = String(node.sni ?? '')
+  servername.value = String(node.servername ?? node.sni ?? '')
+  fingerprint.value = String(node['client-fingerprint'] ?? '')
+  const reality = (node['reality-opts'] ?? {}) as Record<string, unknown>
+  realityPublicKey.value = String(reality['public-key'] ?? '')
+  realityShortId.value = String(reality['short-id'] ?? '')
+  dialerProxy.value = String(node['dialer-proxy'] ?? '')
+  udp.value = Boolean(node.udp)
   tls.value = Boolean(node.tls) || ['trojan', 'vless', 'vmess'].includes(t)
 
   // 传输
@@ -66,6 +83,7 @@ const applyNode = (node: Record<string, unknown>) => {
   wsHost.value = String(hostHeader ?? '')
   wsPath.value = String(opts['path'] ?? '/')
   network.value = node['ws-opts'] ? 'ws' : node['h2-opts'] ? 'h2' : 'tcp'
+  rawConfigText.value = JSON.stringify(node, null, 2)
 }
 
 const handlerImportLink = () => {
@@ -86,12 +104,22 @@ const isValid = computed(() =>
 )
 
 const buildNode = (): Record<string, unknown> => {
-  const node: Record<string, unknown> = {
+  let node: Record<string, unknown> = {}
+  if (rawConfigText.value.trim()) {
+    try {
+      const parsed = JSON.parse(rawConfigText.value)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) node = parsed
+    } catch {
+      // 表单字段仍可保存,无效 JSON 不覆盖原始配置。
+    }
+  }
+  Object.assign(node, {
     name: name.value.trim(),
     type: type.value,
     server: server.value.trim(),
     port: Number(port.value),
-  }
+    udp: udp.value,
+  })
 
   switch (type.value) {
     case 'ss':
@@ -124,8 +152,19 @@ const buildNode = (): Record<string, unknown> => {
 
   if (tls.value || ['trojan', 'vless', 'vmess'].includes(type.value)) {
     if (sni.value) node.sni = sni.value
+    if (servername.value) node.servername = servername.value
+    if (fingerprint.value) node['client-fingerprint'] = fingerprint.value
     if (tls.value) node.tls = true
   }
+
+  if (realityPublicKey.value || realityShortId.value) {
+    node['reality-opts'] = {
+      ...((node['reality-opts'] as Record<string, unknown> | undefined) ?? {}),
+      ...(realityPublicKey.value ? { 'public-key': realityPublicKey.value } : {}),
+      ...(realityShortId.value ? { 'short-id': realityShortId.value } : {}),
+    }
+  }
+  if (dialerProxy.value) node['dialer-proxy'] = dialerProxy.value
 
   if (network.value !== 'tcp') {
     const opts: Record<string, unknown> = { path: wsPath.value }
@@ -186,6 +225,61 @@ const handlerSave = () => {
         <TextInput
           v-model="name"
           clearable
+        />
+      </label>
+      <label
+        v-if="['trojan', 'vmess', 'vless', 'hysteria2'].includes(type)"
+        class="setting-item"
+      >
+        <span class="setting-item-label">{{ $t('servername') }}</span>
+        <TextInput
+          v-model="servername"
+          clearable
+        />
+      </label>
+      <label
+        v-if="['trojan', 'vmess', 'vless', 'hysteria2'].includes(type)"
+        class="setting-item"
+      >
+        <span class="setting-item-label">{{ $t('clientFingerprint') }}</span>
+        <TextInput
+          v-model="fingerprint"
+          clearable
+        />
+      </label>
+      <label
+        v-if="type === 'vless' || type === 'vmess'"
+        class="setting-item"
+      >
+        <span class="setting-item-label">{{ $t('realityPublicKey') }}</span>
+        <TextInput
+          v-model="realityPublicKey"
+          clearable
+        />
+      </label>
+      <label
+        v-if="type === 'vless' || type === 'vmess'"
+        class="setting-item"
+      >
+        <span class="setting-item-label">{{ $t('realityShortId') }}</span>
+        <TextInput
+          v-model="realityShortId"
+          clearable
+        />
+      </label>
+      <label class="setting-item">
+        <span class="setting-item-label">{{ $t('dialerProxy') }}</span>
+        <TextInput
+          v-model="dialerProxy"
+          clearable
+        />
+      </label>
+      <label class="setting-item">
+        <span class="setting-item-label">{{ $t('udp') }}</span>
+        <input
+          v-model="udp"
+          type="checkbox"
+          class="toggle"
         />
       </label>
       <label class="setting-item">
@@ -333,6 +427,21 @@ const handlerSave = () => {
         </label>
       </template>
     </div>
+
+    <details
+      open
+      class="bg-base-200/40 rounded-xl"
+    >
+      <summary class="text-base-content/70 cursor-pointer px-3 py-2 text-xs">
+        {{ $t('rawNodeConfig') }}
+      </summary>
+      <textarea
+        v-model="rawConfigText"
+        rows="8"
+        class="textarea textarea-bordered w-full font-mono text-xs"
+        spellcheck="false"
+      />
+    </details>
 
     <div class="modal-action">
       <button

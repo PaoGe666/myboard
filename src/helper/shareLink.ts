@@ -202,7 +202,20 @@ const parseVlessTrojan = (
   const security = params['security']
   if (security === 'reality' || security === 'tls' || sni) {
     node['tls'] = true
-    if (sni) node['sni'] = sni
+    if (sni) {
+      node['sni'] = sni
+      // Mihomo VLESS 配置通常使用 servername;保留 sni 兼容旧配置。
+      node['servername'] = sni
+    }
+  }
+  // VLESS Reality 分享链接使用 pbk/sid, Mihomo 配置需要放到 reality-opts。
+  const realityPublicKey = params['pbk'] || params['public-key']
+  const realityShortId = params['sid'] || params['short-id']
+  if (realityPublicKey || realityShortId || security === 'reality') {
+    node['reality-opts'] = {
+      ...(realityPublicKey ? { 'public-key': realityPublicKey } : {}),
+      ...(realityShortId ? { 'short-id': realityShortId } : {}),
+    }
   }
   if (params['alpn']) node['alpn'] = params['alpn'].split(',').map((s) => s.trim())
   if (params['fp']) node['client-fingerprint'] = params['fp']

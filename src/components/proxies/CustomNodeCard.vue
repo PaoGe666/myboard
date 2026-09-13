@@ -34,9 +34,17 @@
     <button
       class="btn btn-circle btn-ghost btn-sm"
       :title="$t('editCustomNode')"
-      @click.stop="openCustomNodeEditor(node)"
+      :disabled="loadingConfig"
+      @click.stop="handlerEdit"
     >
-      <PencilSquareIcon class="h-4 w-4 opacity-60" />
+      <span
+        v-if="loadingConfig"
+        class="loading loading-spinner loading-xs"
+      ></span>
+      <PencilSquareIcon
+        v-else
+        class="h-4 w-4 opacity-60"
+      />
     </button>
     <button
       class="btn btn-circle btn-ghost btn-sm text-error"
@@ -53,10 +61,10 @@ import { fetchProxies, proxyLatencyTest, proxyMap } from '@/assembly/proxies'
 import { openCustomNodeEditor, testingNodeNames } from '@/composables/proxies'
 import { showConfirmDialog } from '@/helper/confirmDialog'
 import { showNotification } from '@/helper/notification'
-import { callNodeCgi } from '@/helper/nodeCgi'
+import { callNodeCgi, getNodeConfig } from '@/helper/nodeCgi'
 import { notifyRequestError } from '@/helper/requestError'
 import { PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LatencyTag from './LatencyTag.vue'
 import ProxyIcon from './ProxyIcon.vue'
@@ -65,6 +73,18 @@ const props = defineProps<{ name: string }>()
 const { t } = useI18n()
 const node = computed(() => proxyMap.value[props.name])
 const isTesting = computed(() => testingNodeNames.value.has(props.name))
+const loadingConfig = ref(false)
+
+const handlerEdit = async () => {
+  loadingConfig.value = true
+  try {
+    openCustomNodeEditor(await getNodeConfig(props.name))
+  } catch (e) {
+    notifyRequestError(e)
+  } finally {
+    loadingConfig.value = false
+  }
+}
 
 const testLatency = async () => {
   await proxyLatencyTest(props.name, undefined, 5000)
