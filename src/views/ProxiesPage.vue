@@ -230,10 +230,11 @@ const handlerSaveProvider = async () => {
 }
 
 const handlerSaveCustomNode = async (node: Record<string, unknown>) => {
-  const action =
-    customNodeEditorTarget.value && customNodeEditorTarget.value['name'] ? 'update' : 'add'
+  const originalName = customNodeEditorTarget.value?.['name'] as string | undefined
+  const action = originalName ? 'update' : 'add'
   try {
-    const res = await callNodeCgi(action, node['name'] as string, node)
+    // update 用旧名称定位,允许用户在编辑器内修改节点名称。
+    const res = await callNodeCgi(action, originalName || (node['name'] as string), node)
     if (!res.ok) throw new Error(res.error || 'save failed')
     showNotification({
       content: action === 'add' ? 'addProviderSuccess' : 'updateNodeSuccess',
