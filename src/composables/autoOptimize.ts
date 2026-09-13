@@ -9,7 +9,7 @@ import {
 import { NOT_CONNECTED } from '@/constant'
 import { isProxyGroup } from '@/helper'
 import { autoOptimize } from '@/store/settings'
-import { watch } from 'vue'
+import { nextTick, watch } from 'vue'
 
 const OPTIMIZE_INTERVAL = 5 * 60 * 1000
 
@@ -38,18 +38,6 @@ const selectBest = async (groupName: string) => {
   }
 }
 
-const runSelectOnly = async () => {
-  if (isOptimizing) return
-  isOptimizing = true
-  try {
-    for (const groupName of proxyGroupList.value) {
-      await selectBest(groupName)
-    }
-  } finally {
-    isOptimizing = false
-  }
-}
-
 const runTestAndSelect = async () => {
   if (isOptimizing) return
   isOptimizing = true
@@ -66,7 +54,8 @@ const runTestAndSelect = async () => {
 const start = () => {
   stop()
   if (!autoOptimize.value) return
-  runSelectOnly()
+  // 启用后立即测速并选择,不依赖节点已有历史延迟或等待五分钟定时器。
+  nextTick(() => runTestAndSelect())
   timer = setInterval(runTestAndSelect, OPTIMIZE_INTERVAL)
 }
 
@@ -78,3 +67,10 @@ const stop = () => {
 }
 
 watch(autoOptimize, start, { immediate: true })
+
+// 后端切换/首次拉取后 proxyGroupList 才有内容,避免启动时空扫描后要等五分钟。
+watch(proxyGroupList, () => {
+  if (autoOptimize.value && !isOptimizing && proxyGroupList.value.length) {
+    runTestAndSelect()
+  }
+})
