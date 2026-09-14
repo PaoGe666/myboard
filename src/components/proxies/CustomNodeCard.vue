@@ -1,9 +1,11 @@
 <template>
   <div
     :class="[
-      'bg-base-100 border-base-300/50 flex w-full items-center gap-2 rounded-xl border p-3 transition-colors',
+      'relative flex w-full cursor-pointer flex-col items-start rounded-md p-2 transition-colors hover:shadow-sm',
+      'bg-base-200 sm:hover:bg-base-300/50',
       isTesting && 'border-warning/70 ring-warning/30 bg-warning/5 ring-2',
     ]"
+    @contextmenu.stop.prevent="handlerLatencyTest"
   >
     <ProxyIcon
       v-if="node?.icon"
@@ -11,7 +13,7 @@
       :name="name"
       class="shrink-0"
     />
-    <div class="min-w-0 flex-1">
+    <div class="w-full min-w-0 flex-1 text-sm">
       <div class="flex items-center gap-2 truncate text-sm">
         <span>{{ name }}</span>
         <span
@@ -25,34 +27,42 @@
         {{ node?.type }}
       </div>
     </div>
-    <LatencyTag
-      class="shrink-0"
-      :name="name"
-      :group-name="name"
-      @click.stop="testLatency"
-    />
-    <button
-      class="btn btn-circle btn-ghost btn-sm"
-      :title="$t('editCustomNode')"
-      :disabled="loadingConfig"
-      @click.stop="handlerEdit"
-    >
-      <span
-        v-if="loadingConfig"
-        class="loading loading-spinner loading-xs"
-      ></span>
-      <PencilSquareIcon
-        v-else
-        class="h-4 w-4 opacity-60"
+    <div class="flex h-4 w-full items-center justify-between">
+      <span class="text-base-content/60 truncate text-xs tracking-tight">
+        {{ typeDescription }}
+      </span>
+      <LatencyTag
+        class="shrink-0"
+        :loading="isLatencyTesting"
+        :name="name"
+        @click.stop="handlerLatencyTest"
       />
-    </button>
-    <button
-      class="btn btn-circle btn-ghost btn-sm text-error"
-      :title="$t('deleteCustomNode')"
-      @click.stop="handlerDelete"
-    >
-      <TrashIcon class="h-4 w-4 opacity-60" />
-    </button>
+    </div>
+    <!-- 操作按钮不占用测速点击区域 -->
+    <div class="absolute top-1 right-1 flex items-center">
+      <button
+        class="btn btn-circle btn-ghost btn-sm"
+        :title="$t('editCustomNode')"
+        :disabled="loadingConfig"
+        @click.stop="handlerEdit"
+      >
+        <span
+          v-if="loadingConfig"
+          class="loading loading-spinner loading-xs"
+        ></span>
+        <PencilSquareIcon
+          v-else
+          class="h-4 w-4 opacity-60"
+        />
+      </button>
+      <button
+        class="btn btn-circle btn-ghost btn-sm text-error"
+        :title="$t('deleteCustomNode')"
+        @click.stop="handlerDelete"
+      >
+        <TrashIcon class="h-4 w-4 opacity-60" />
+      </button>
+    </div>
   </div>
 </template>
 
@@ -74,6 +84,10 @@ const { t } = useI18n()
 const node = computed(() => proxyMap.value[props.name])
 const isTesting = computed(() => testingNodeNames.value.has(props.name))
 const loadingConfig = ref(false)
+const isLatencyTesting = ref(false)
+const typeDescription = computed(() => {
+  return node.value?.type?.toLowerCase() || ''
+})
 
 const handlerEdit = async () => {
   loadingConfig.value = true
@@ -86,8 +100,14 @@ const handlerEdit = async () => {
   }
 }
 
-const testLatency = async () => {
-  await proxyLatencyTest(props.name, undefined, 5000)
+const handlerLatencyTest = async () => {
+  if (isLatencyTesting.value) return
+  isLatencyTesting.value = true
+  try {
+    await proxyLatencyTest(props.name, undefined, 5000)
+  } finally {
+    isLatencyTesting.value = false
+  }
 }
 
 const handlerDelete = async () => {
