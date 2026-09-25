@@ -373,6 +373,15 @@ export const providerEnabledMap = useStorage<Record<string, boolean>>(
   'config/provider-enabled-map',
   {},
 )
+// 启用订阅的自动刷新间隔，默认 6 小时；设为 0 可停用自动刷新。
+export const providerAutoUpdateInterval = useStorage(
+  'config/provider-auto-update-interval',
+  6 * 60 * 60 * 1000,
+)
+export const providerAutoUpdateIntervals = useStorage<Record<string, number>>(
+  'config/provider-auto-update-intervals',
+  {},
+)
 
 export const providerCgiBase = useStorage('config/provider-cgi-base', '')
 

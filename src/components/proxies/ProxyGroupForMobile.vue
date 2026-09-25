@@ -60,6 +60,20 @@
               :mobile="true"
             />
           </div>
+          <label
+            v-if="canManuallyChooseProviderNode"
+            class="text-base-content/70 z-10 mr-2 flex shrink-0 cursor-pointer items-center gap-1 text-xs"
+            @click.stop
+          >
+            <span>{{ $t('manual') }}</span>
+            <input
+              class="toggle toggle-primary toggle-xs"
+              type="checkbox"
+              :checked="manualNodeMode"
+              :aria-label="$t('manual')"
+              @change.stop="handlerManualModeToggle"
+            />
+          </label>
           <LatencyTag
             :class="twMerge('bg-base-200/50 hover:bg-base-200 z-10')"
             :loading="isLatencyTesting"
@@ -90,9 +104,10 @@
       >
         <Component
           :is="groupProxiesByProvider ? ProxiesByProvider : ProxiesContent"
-          :name="name"
-          :now="currentProxyName"
-          :render-proxies="renderProxies"
+          :name="selectionGroupName"
+          :now="visibleNow"
+          :render-proxies="visibleProxies"
+          :stable-order="manualNodeMode"
         />
       </div>
     </div>
@@ -103,23 +118,29 @@
 import { useBounceOnVisible } from '@/composables/bouncein'
 import { disableProxiesPageScroll } from '@/composables/proxies'
 import { useRenderProxies } from '@/composables/renderProxies'
+import { customNodeNames } from '@/composables/proxies'
+import { MYBOARD_MANUAL_GROUP_PREFIX, PROXY_TYPE } from '@/constant'
 import { isHiddenGroup } from '@/helper'
 import { getPreferredProxyIcon } from '@/helper/proxyIcon'
 import { PROXIES_PARENT_CLASS } from '@/helper/utils'
 import {
   getCurrentProxyName,
+  handlerProxySelect,
   hiddenGroupMap,
   proxyGroupLatencyTest,
   proxyMap,
+  proxyProviederList,
 } from '@/assembly/proxies'
 import {
   blurIntensity,
   groupProxiesByProvider,
   manageHiddenGroup,
   preferBrandSvgIcon,
+  providerEnabledMap,
 } from '@/store/settings'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { twMerge } from 'tailwind-merge'
+import { useSessionStorage } from '@vueuse/core'
 import { computed, nextTick, ref } from 'vue'
 import LatencyTag from './LatencyTag.vue'
 import ProxiesByProvider from './ProxiesByProvider.vue'
@@ -133,8 +154,72 @@ const props = defineProps<{
 }>()
 const proxyGroup = computed(() => proxyMap.value[props.name])
 const allProxies = computed(() => proxyGroup.value.all ?? [])
-const { proxiesCount, renderProxies } = useRenderProxies(allProxies, props.name)
-const currentProxyName = computed(() => getCurrentProxyName(props.name))
+const manualGroupName = computed(() => `${MYBOARD_MANUAL_GROUP_PREFIX}${props.name}`)
+const manualNodeMode = computed(() => proxyGroup.value?.now === manualGroupName.value)
+const previousProxyName = useSessionStorage(`myboard-manual-previous:${props.name}`, '')
+const selectionGroupName = computed(() =>
+  manualNodeMode.value ? manualGroupName.value : props.name,
+)
+const currentProxyName = computed(() =>
+  proxyGroup.value?.now === manualGroupName.value
+    ? getCurrentProxyName(manualGroupName.value)
+    : getCurrentProxyName(props.name),
+)
+const canManuallyChooseProviderNode = computed(
+  () =>
+    proxyGroup.value?.type.toLowerCase() === PROXY_TYPE.Selector &&
+    (proxyProviederList.value.length > 0 || customNodeNames.value.length > 0) &&
+    Boolean(proxyMap.value[manualGroupName.value]),
+)
+const regularProxies = computed(() =>
+  allProxies.value.filter((name) => name !== manualGroupName.value),
+)
+const providerNodes = computed(() => {
+  const names = new Set<string>()
+  for (const provider of proxyProviederList.value) {
+    if (providerEnabledMap.value[provider.name] === false) continue
+    for (const node of provider.proxies) names.add(node.name)
+  }
+  for (const name of customNodeNames.value) names.add(name)
+  return [...names]
+})
+const { proxiesCount: regularProxiesCount, renderProxies: regularRenderProxies } = useRenderProxies(
+  regularProxies,
+  props.name,
+)
+const { proxiesCount: manualProxiesCount, renderProxies: manualRenderProxies } = useRenderProxies(
+  providerNodes,
+  props.name,
+  undefined,
+  false,
+  true,
+)
+const proxiesCount = computed(() =>
+  manualNodeMode.value ? manualProxiesCount.value : regularProxiesCount.value,
+)
+const visibleProxies = computed(() =>
+  manualNodeMode.value ? manualRenderProxies.value : regularRenderProxies.value,
+)
+const visibleNow = computed(() =>
+  manualNodeMode.value ? proxyMap.value[manualGroupName.value]?.now : currentProxyName.value,
+)
+const handlerManualModeToggle = async () => {
+  if (!canManuallyChooseProviderNode.value) return
+
+  if (!manualNodeMode.value) {
+    const selected = proxyGroup.value?.now ?? ''
+    previousProxyName.value = selected.startsWith(MYBOARD_MANUAL_GROUP_PREFIX)
+      ? (regularProxies.value[0] ?? '')
+      : selected
+    await handlerProxySelect(props.name, manualGroupName.value)
+    return
+  }
+
+  const restore = allProxies.value.includes(previousProxyName.value)
+    ? previousProxyName.value
+    : (regularProxies.value[0] ?? '')
+  if (restore) await handlerProxySelect(props.name, restore)
+}
 const hasNoAvailableProxy = computed(() => !currentProxyName.value)
 const rawGroupIcon = computed(() => proxyGroup.value?.icon || '')
 const displayGroupIcon = computed(() =>
@@ -183,7 +268,7 @@ const calcCardStyle = () => {
       return
     }
 
-    const manyProxies = renderProxies.value.length > 4
+    const manyProxies = visibleProxies.value.length > 4
     const { left, top, bottom } = cardWrapperRef.value.getBoundingClientRect()
     const { innerHeight, innerWidth } = window
 

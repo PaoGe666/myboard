@@ -38,6 +38,20 @@
           :mobile="true"
         />
       </div>
+      <label
+        v-if="canManual"
+        class="text-base-content/70 absolute right-10 bottom-0 z-10 flex cursor-pointer items-center gap-1.5 text-xs"
+        @click.stop
+      >
+        <span>{{ $t('manual') }}</span>
+        <input
+          class="toggle toggle-primary toggle-xs"
+          type="checkbox"
+          :checked="manualMode"
+          :aria-label="$t('manual')"
+          @change.stop="emit('manual-toggle')"
+        />
+      </label>
       <div
         v-if="!twoColumnProxyGroup || displayContent"
         class="text-base-content/40 mr-2 min-w-12 shrink-0 text-right text-xs tabular-nums"
@@ -86,10 +100,13 @@ const props = defineProps<{
   displayContent: boolean
   now?: string
   showWarning?: boolean
+  canManual?: boolean
+  manualMode?: boolean
 }>()
 
 const emit = defineEmits<{
   'latency-test': []
+  'manual-toggle': []
 }>()
 
 const { t } = useI18n()

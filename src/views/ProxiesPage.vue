@@ -28,6 +28,23 @@
           <PlusIcon class="h-4 w-4" />
         </button>
         <button
+          v-if="providerSubTab === 'subscription'"
+          class="btn btn-circle btn-sm"
+          :title="$t('testAllSubscriptions')"
+          :aria-label="$t('testAllSubscriptions')"
+          :disabled="isTestingSubscriptions || enabledSubscriptionProviders.length === 0"
+          @click="handlerTestSubscriptions"
+        >
+          <span
+            v-if="isTestingSubscriptions"
+            class="loading loading-spinner loading-sm"
+          ></span>
+          <BoltIcon
+            v-else
+            class="h-4 w-4"
+          />
+        </button>
+        <button
           v-if="providerSubTab === 'custom'"
           class="btn btn-circle btn-sm"
           :title="$t('testAllCustomNodes')"
@@ -37,38 +54,84 @@
         </button>
       </div>
       <DialogWrapper
-        v-if="providerSubTab === 'subscription' && providerFormOpen"
+        v-if="providerFormOpen"
         v-model="providerFormOpen"
-        :title="$t('addProvider')"
+        :title="$t(subscriptionAddMode === 'custom' ? 'addCustomNode' : 'addProvider')"
       >
         <div class="flex flex-col gap-3 p-2 text-sm">
-          <label class="setting-item">
-            <span class="setting-item-label">{{ $t('providerName') }}</span>
-            <TextInput
-              v-model="providerFormName"
-              clearable
-            />
-          </label>
-          <label class="setting-item">
-            <span class="setting-item-label">{{ $t('providerUrl') }}</span>
-            <TextInput
-              v-model="providerFormUrl"
-              clearable
-              placeholder="https://..."
-            />
-          </label>
-          <div class="text-base-content/60 text-xs">{{ $t('addProviderHint') }}</div>
-          <button
-            class="btn btn-primary btn-sm"
-            :disabled="providerFormSubmitting"
-            @click="handlerSaveProvider"
-          >
-            <span
-              v-if="providerFormSubmitting"
-              class="loading loading-spinner loading-sm"
-            ></span>
-            {{ $t('add') }}
-          </button>
+          <SegmentedControl
+            :model-value="subscriptionAddMode"
+            :options="addModeOptions"
+            block
+            @update:model-value="setAddMode"
+          />
+          <template v-if="subscriptionAddMode !== 'custom'">
+            <label class="setting-item">
+              <span class="setting-item-label">{{ $t('providerName') }}</span>
+              <TextInput
+                v-model="providerFormName"
+                clearable
+              />
+            </label>
+            <label
+              v-if="subscriptionAddMode === 'url'"
+              class="setting-item"
+            >
+              <span class="setting-item-label">{{ $t('providerUrl') }}</span>
+              <TextInput
+                v-model="providerFormUrl"
+                clearable
+                placeholder="https://..."
+              />
+            </label>
+            <label
+              v-else
+              class="flex flex-col gap-2 text-sm font-medium"
+            >
+              {{ $t('vlessSubscriptionInput') }}
+              <textarea
+                v-model="providerFormBase64"
+                class="textarea textarea-bordered min-h-32 w-full font-mono text-xs"
+                :placeholder="$t('vlessSubscriptionInputPlaceholder')"
+              />
+            </label>
+            <div
+              v-if="subscriptionAddMode === 'url'"
+              class="text-base-content/60 text-xs"
+            >
+              {{ $t('addProviderHint') }}
+            </div>
+            <div
+              v-else-if="providerBase64Result.error"
+              class="alert alert-error py-2 text-sm"
+            >
+              {{ $t(providerBase64Result.error) }}
+            </div>
+            <div
+              v-else-if="providerBase64Result.links.length"
+              class="text-sm"
+            >
+              {{ $t('vlessSubscriptionCount', { count: providerBase64Result.links.length }) }}
+            </div>
+            <button
+              class="btn btn-primary btn-sm"
+              :disabled="providerFormSubmitting || !canSaveSubscription"
+              @click="handlerSaveProvider"
+            >
+              <span
+                v-if="providerFormSubmitting"
+                class="loading loading-spinner loading-sm"
+              ></span>
+              {{ subscriptionAddMode === 'url' ? $t('add') : $t('vlessSubscriptionCreate') }}
+            </button>
+          </template>
+          <CustomNodeEditor
+            v-else
+            :show-title="false"
+            :group-names="proxyGroupList"
+            @save="handlerSaveCustomNode"
+            @cancel="providerFormOpen = false"
+          />
         </div>
       </DialogWrapper>
       <DialogWrapper
@@ -79,6 +142,7 @@
         <CustomNodeEditor
           :initial="customNodeEditorTarget"
           :group-names="proxyGroupList"
+          :show-title="false"
           @save="handlerSaveCustomNode"
           @cancel="closeCustomNodeEditor"
         />
@@ -132,26 +196,115 @@ import {
   customNodeNames,
   disableProxiesPageScroll,
   markNodeTesting,
-  openCustomNodeEditor,
   providerSubTab,
   renderProxiesPageItems,
 } from '@/composables/proxies'
 import { PROXY_TAB_TYPE } from '@/constant'
 import { isMiddleScreen } from '@/helper/utils'
-import { fetchProxies, proxyLatencyTest } from '@/assembly/proxies'
-import { proxiesTabShow, proxyGroupList } from '@/assembly/proxies'
+import {
+  fetchProxies,
+  proxyLatencyTest,
+  proxyProviderHealthCheckAPI,
+  proxyProviederList,
+  proxiesTabShow,
+  proxyGroupList,
+  updateProxyProviderAPI,
+} from '@/assembly/proxies'
 import { callNodeCgi } from '@/helper/nodeCgi'
-import { callProviderCgi } from '@/helper/providerCgi'
+import { callLocalProviderCgi, callProviderCgi } from '@/helper/providerCgi'
+import { parseShareLink } from '@/helper/shareLink'
 import { notifyRequestError } from '@/helper/requestError'
 import { showNotification } from '@/helper/notification'
 import { BoltIcon, PlusIcon } from '@heroicons/vue/24/outline'
-import { disableProxiesPageTextSelect, twoColumnProxyGroup } from '@/store/settings'
+import {
+  disableProxiesPageTextSelect,
+  providerAutoUpdateInterval,
+  providerAutoUpdateIntervals,
+  providerEnabledMap,
+  twoColumnProxyGroup,
+} from '@/store/settings'
 import { useResizeObserver, useSessionStorage } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const isTestingCustomNodes = ref(false)
+const isTestingSubscriptions = ref(false)
+let providerAutoUpdateTimer: ReturnType<typeof setInterval> | undefined
+let providerAutoUpdating = false
+const enabledSubscriptionProviders = computed(() =>
+  proxyProviederList.value.filter((provider) => providerEnabledMap.value[provider.name] !== false),
+)
+
+const refreshEnabledSubscriptions = async () => {
+  if (providerAutoUpdating) return
+
+  const now = Date.now()
+  const providers = enabledSubscriptionProviders.value
+    .filter((provider) => {
+      const interval =
+        providerAutoUpdateIntervals.value[provider.name] ?? providerAutoUpdateInterval.value
+      const updatedAt = Date.parse(provider.updatedAt || '')
+      return interval > 0 && (!updatedAt || now - updatedAt >= interval)
+    })
+    .map(({ name }) => name)
+  if (!providers.length) return
+
+  providerAutoUpdating = true
+  try {
+    const results = await Promise.allSettled(providers.map((name) => updateProxyProviderAPI(name)))
+    if (results.some((result) => result.status === 'fulfilled')) {
+      await fetchProxies()
+    }
+  } finally {
+    providerAutoUpdating = false
+  }
+}
+const latestProviderHistoryTime = (history?: { time: string }[]) =>
+  Math.max(0, ...(history ?? []).map(({ time }) => Date.parse(time) || 0))
+
+const handlerTestSubscriptions = async () => {
+  if (isTestingSubscriptions.value || !enabledSubscriptionProviders.value.length) return
+  isTestingSubscriptions.value = true
+  try {
+    const providers = [...enabledSubscriptionProviders.value]
+    const snapshots = new Map(
+      providers.map((provider) => [
+        provider.name,
+        new Map(
+          provider.proxies.map((proxy) => [proxy.name, latestProviderHistoryTime(proxy.history)]),
+        ),
+      ]),
+    )
+    const results = await Promise.allSettled(
+      providers.map((provider) => proxyProviderHealthCheckAPI(provider.name)),
+    )
+    const failed = results.filter((result) => result.status === 'rejected')
+    const successfulNames = providers
+      .filter((_, index) => results[index]?.status === 'fulfilled')
+      .map((provider) => provider.name)
+    if (!successfulNames.length && failed.length) throw failed[0].reason
+
+    const deadline = Date.now() + 30_000
+    do {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await fetchProxies()
+      const finished = successfulNames.every((name) => {
+        const previous = snapshots.get(name) ?? new Map()
+        const current = proxyProviederList.value.find((provider) => provider.name === name)
+        return current?.proxies.every(
+          (proxy) => latestProviderHistoryTime(proxy.history) > (previous.get(proxy.name) ?? 0),
+        )
+      })
+      if (finished) break
+    } while (Date.now() < deadline)
+    if (failed.length) notifyRequestError(failed[0].reason)
+  } catch (error) {
+    notifyRequestError(error)
+  } finally {
+    isTestingSubscriptions.value = false
+  }
+}
 
 // 简易并发信号量:同时最多 CONCURRENCY 个测速,完成后取下一个
 const CONCURRENCY = 3
@@ -194,35 +347,92 @@ const providerSubTabOptions = computed(() => [
 const providerFormOpen = ref(false)
 const providerFormName = ref('')
 const providerFormUrl = ref('')
+const providerFormBase64 = ref('')
 const providerFormSubmitting = ref(false)
+const subscriptionAddMode = ref<'url' | 'base64' | 'custom'>('url')
+const addModeOptions = computed(() => [
+  { value: 'url', label: t('subscriptionUrl') },
+  { value: 'base64', label: t('base64Vless') },
+  { value: 'custom', label: t('customNodeMode') },
+])
+const setAddMode = (value: string) => {
+  subscriptionAddMode.value = value as 'url' | 'base64' | 'custom'
+}
+const providerBase64Result = computed(
+  (): {
+    links: string[]
+    nodes: Record<string, unknown>[]
+    error: string
+  } => {
+    const source = providerFormBase64.value.trim()
+    if (!source) return { links: [], nodes: [], error: '' }
+    try {
+      const compact = source.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/')
+      const binary = atob(compact.padEnd(Math.ceil(compact.length / 4) * 4, '='))
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+      const decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+      const links = decoded
+        .split(/[\r\n|]+/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+      const parsed = parseShareLink(links.join('\n'))
+      const nodes = (Array.isArray(parsed) ? parsed : parsed ? [parsed] : []) as Record<
+        string,
+        unknown
+      >[]
+      if (
+        !links.length ||
+        links.some((line) => !/^vless:\/\/\S+$/i.test(line)) ||
+        nodes.length !== links.length
+      ) {
+        return { links: [], nodes: [], error: 'vlessSubscriptionInvalidContent' }
+      }
+      return { links, nodes, error: '' }
+    } catch {
+      return { links: [], nodes: [], error: 'vlessSubscriptionDecodeFailed' }
+    }
+  },
+)
+const canSaveSubscription = computed(() => {
+  if (!providerFormName.value.trim()) return false
+  return subscriptionAddMode.value === 'url'
+    ? Boolean(providerFormUrl.value.trim())
+    : subscriptionAddMode.value === 'base64' && providerBase64Result.value.nodes.length > 0
+})
+watch(providerFormOpen, (open) => {
+  if (!open) {
+    providerFormName.value = ''
+    providerFormUrl.value = ''
+    providerFormBase64.value = ''
+    subscriptionAddMode.value = 'url'
+  }
+})
 
 const handlerClickAdd = () => {
-  if (providerSubTab.value === 'subscription') {
-    providerFormOpen.value = true
-  } else {
-    openCustomNodeEditor()
-  }
+  subscriptionAddMode.value = providerSubTab.value === 'custom' ? 'custom' : 'url'
+  providerFormOpen.value = true
 }
 
 const handlerSaveProvider = async () => {
   if (providerFormSubmitting.value) return
-  if (!providerFormName.value.trim() || !providerFormUrl.value.trim()) {
+  if (subscriptionAddMode.value === 'custom') return
+  if (!providerFormName.value.trim() || !canSaveSubscription.value) {
     showNotification({ content: 'addProviderRequireFields', type: 'alert-error' })
     return
   }
+  const isBase64Subscription = subscriptionAddMode.value === 'base64'
   providerFormSubmitting.value = true
   try {
-    const res = await callProviderCgi(
-      'add',
-      providerFormName.value.trim(),
-      providerFormUrl.value.trim(),
-    )
+    const res = !isBase64Subscription
+      ? await callProviderCgi('add', providerFormName.value.trim(), providerFormUrl.value.trim())
+      : await callLocalProviderCgi(providerFormName.value.trim(), providerBase64Result.value.nodes)
     if (!res.ok) throw new Error(res.error || 'cgi failed')
     providerFormOpen.value = false
-    providerFormName.value = ''
-    providerFormUrl.value = ''
     await fetchProxies()
-    showNotification({ content: 'addProviderSuccess', type: 'alert-success' })
+    showNotification({
+      content: isBase64Subscription ? 'vlessSubscriptionCreated' : 'addProviderSuccess',
+      type: 'alert-success',
+    })
   } catch (e) {
     notifyRequestError(e)
   } finally {
@@ -246,6 +456,7 @@ const handlerSaveCustomNode = async (node: Record<string, unknown>) => {
       type: 'alert-success',
     })
     closeCustomNodeEditor()
+    providerFormOpen.value = false
     await fetchProxies()
   } catch (e) {
     notifyRequestError(e)
@@ -449,9 +660,15 @@ onMounted(() => {
   setTimeout(() => {
     fetchProxies()
   })
+  // 定时器本身不依赖全局默认值；单个订阅可以在全局关闭时独立启用。
+  providerAutoUpdateTimer = setInterval(refreshEnabledSubscriptions, 60 * 1000)
 })
 
 onBeforeUnmount(() => {
+  if (providerAutoUpdateTimer) {
+    clearInterval(providerAutoUpdateTimer)
+    providerAutoUpdateTimer = undefined
+  }
   cancelAnimationFrame(saveFrame)
   saveFrame = 0
   saveScrollPosition()

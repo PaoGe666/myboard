@@ -18,6 +18,7 @@ const GAP = 8
 
 const props = defineProps<{
   name?: string
+  activateGroupName?: string
   now?: string
   renderProxies: string[]
   readonly?: boolean
@@ -78,6 +79,15 @@ const bottomSpacer = computed(() => {
 
 const rowNodes = (rowIndex: number) =>
   props.renderProxies.slice(rowIndex * columns.value, (rowIndex + 1) * columns.value)
+
+const handlerNodeSelect = async (node: string) => {
+  if (props.readonly || !props.name) return
+
+  const selected = await handlerProxySelect(props.name, node)
+  if (selected && props.activateGroupName && props.activateGroupName !== props.name) {
+    await handlerProxySelect(props.activateGroupName, props.name)
+  }
+}
 
 // 每个元素只交给 virtualizer 量一次;之后的高度变化由它自己的 ResizeObserver 报回来。
 const measuredRows = new WeakSet<Element>()
@@ -299,7 +309,7 @@ onBeforeUnmount(cancelCorrect)
         :name="node"
         :group-name="name"
         :active="node === now"
-        @click.stop="!readonly && name && handlerProxySelect(name, node)"
+        @click.stop="handlerNodeSelect(node)"
       />
     </div>
     <div :style="{ height: `${bottomSpacer}px` }" />

@@ -1,0 +1,38 @@
+#!/bin/sh
+SCRIPT="/usr/share/openclash/myboard_node.rb"
+TMP="/tmp/myboard_node.json"
+
+printf 'Access-Control-Allow-Origin: *\r\n'
+printf 'Access-Control-Allow-Methods: POST, OPTIONS\r\n'
+printf 'Access-Control-Allow-Headers: *, Content-Type\r\n'
+if [ "$REQUEST_METHOD" = "OPTIONS" ]; then
+  printf 'Content-Type: text/plain\r\n\r\n'
+  exit 0
+fi
+printf 'Content-Type: application/json\r\n\r\n'
+
+: > "$TMP"
+if [ -n "$CONTENT_LENGTH" ] && [ "$CONTENT_LENGTH" -gt 0 ] 2>/dev/null; then
+  head -c "$CONTENT_LENGTH" > "$TMP" 2>/dev/null
+fi
+
+action=$(ruby -rjson -e "j=JSON.parse(STDIN.read); print j['action'].to_s" < "$TMP" 2>/dev/null)
+name=$(ruby -rjson -e "j=JSON.parse(STDIN.read); print j['name'].to_s" < "$TMP" 2>/dev/null)
+
+if [ "$action" = "get" ]; then
+  MYBOARD_RELOAD=0 ruby "$SCRIPT" get "$name" 2>&1
+  exit $?
+elif [ "$action" = "add" ] || [ "$action" = "update" ]; then
+  ruby -rjson -e "j=JSON.parse(STDIN.read); File.write('/tmp/myboard_node_payload.json', JSON.dump(j['node']))" < "$TMP" 2>/dev/null
+  out=$(MYBOARD_RELOAD=1 ruby "$SCRIPT" "$action" "$name" /tmp/myboard_node_payload.json 2>&1)
+elif [ "$action" = "delete" ]; then
+  out=$(MYBOARD_RELOAD=1 ruby "$SCRIPT" delete "$name" 2>&1)
+else
+  out="ERR: 未知操作"
+fi
+
+if echo "$out" | grep -q '^OK:'; then
+  printf '%s' "$out" | ruby -rjson -e 'puts JSON.generate(ok: true, result: STDIN.read.chomp)'
+else
+  printf '%s' "$out" | ruby -rjson -e 'puts JSON.generate(ok: false, error: STDIN.read.chomp)'
+fi

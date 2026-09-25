@@ -25,6 +25,7 @@ import {
   manageHiddenGroup,
   minProxyCardWidth,
   preferBrandSvgIcon,
+  providerAutoUpdateInterval,
   proxyCardSize,
   proxySortType,
   twoColumnProxyGroup,
@@ -281,6 +282,19 @@ export default defineComponent({
                     type="checkbox"
                     class="toggle"
                     v-model={hideUnavailableProxies.value}
+                  />
+                </div>
+                <div class="setting-item">
+                  <div class="setting-item-label">{t('providerAutoUpdate')}</div>
+                  <input
+                    type="checkbox"
+                    class="toggle"
+                    checked={providerAutoUpdateInterval.value > 0}
+                    onChange={(event) => {
+                      providerAutoUpdateInterval.value = (event.target as HTMLInputElement).checked
+                        ? 6 * 60 * 60 * 1000
+                        : 0
+                    }}
                   />
                 </div>
                 <div class="setting-item">

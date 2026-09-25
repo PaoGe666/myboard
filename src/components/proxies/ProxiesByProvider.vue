@@ -4,19 +4,30 @@
  * 就得把标题也当成行、行号跨段累加;分开挂则每段自己算自己的,列数一样、共用外面同一个
  * 滚动容器,视觉上和一整片网格没区别。
  */
+import { customNodeNames } from '@/composables/proxies'
 import { groupProxiesByProviderName } from '@/composables/renderProxies'
 import { computed, onBeforeUnmount, onBeforeUpdate, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ProxiesContent from './ProxiesContent.vue'
 
 const props = defineProps<{
   name: string
+  activateGroupName?: string
   now: string
   renderProxies: string[]
   readonly?: boolean
+  stableOrder?: boolean
 }>()
+const { t } = useI18n()
 
 const groupedProxies = computed(() => {
-  const groups = groupProxiesByProviderName(props.renderProxies)
+  const groups = groupProxiesByProviderName(
+    props.renderProxies,
+    new Set(customNodeNames.value),
+    t('customNodes'),
+  )
+
+  if (props.stableOrder) return groups
 
   const activeGroupIndex = groups.findIndex(({ proxies }) => proxies.includes(props.now))
 
@@ -78,6 +89,7 @@ onBeforeUnmount(() => {
       <ProxiesContent
         :ref="(el) => (sections[index] = el as InstanceType<typeof ProxiesContent> | null)"
         :name="name"
+        :activate-group-name="activateGroupName"
         :now="now"
         :render-proxies="proxies"
         :readonly="readonly"

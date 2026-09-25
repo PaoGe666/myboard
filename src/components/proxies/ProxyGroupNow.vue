@@ -7,14 +7,14 @@
         @mouseenter="tipForFixed"
       />
       <ProxyName
-        :name="currentProxyName"
+        :name="displayProxyName"
         :class="
           isNowAGroup && 'hover:bg-base-300 hover:-mx-1 hover:rounded-lg hover:px-1 hover:shadow'
         "
         class="text-base-content text-xs md:text-sm"
         @click="handlerClickNow"
       />
-      <template v-if="finalOutbound && displayFinalOutbound">
+      <template v-if="finalOutbound && displayFinalOutbound && !isManualImplementationGroup">
         <ArrowRightCircleIcon class="text-base-content/40 h-3.5 w-3.5 shrink-0" />
         <ProxyName
           :name="finalOutbound"
@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { openProxyGroupChain } from '@/composables/proxyGroupChain'
-import { PROXY_TYPE } from '@/constant'
+import { MYBOARD_MANUAL_GROUP_PREFIX, PROXY_TYPE } from '@/constant'
 import { useTooltip } from '@/helper/tooltip'
 import {
   getCurrentProxyName,
@@ -64,6 +64,9 @@ const props = defineProps<{
 }>()
 const proxyGroup = computed(() => proxyMap.value[props.name])
 const currentProxyName = computed(() => getCurrentProxyName(props.name))
+const isManualImplementationGroup = computed(() =>
+  currentProxyName.value.startsWith(MYBOARD_MANUAL_GROUP_PREFIX),
+)
 const { showTip } = useTooltip()
 const { t } = useI18n()
 
@@ -94,6 +97,12 @@ const finalOutbound = computed(() => {
 
   return now
 })
+
+const displayProxyName = computed(() =>
+  isManualImplementationGroup.value && finalOutbound.value
+    ? finalOutbound.value
+    : currentProxyName.value,
+)
 
 const handlerClickNow = (e: Event) => {
   if (isNowAGroup.value) {

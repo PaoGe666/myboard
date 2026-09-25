@@ -89,6 +89,9 @@ const readHistory = (proxyName: string, testUrl: string) => {
   return proxyMap.value[getNowProxyNodeName(proxyName)]?.history
 }
 
+export const hasLatencyHistoryByName = (proxyName: string, groupName?: string) =>
+  Boolean(readHistory(proxyName, getTestUrlBucket(groupName))?.length)
+
 // 表是全局的,但第一次用到它的往往是某张卡片的 setup。不放进独立 scope 的话,
 // 这个 computed 会被那张卡片的 scope 收走,卡片一卸载它就被 stop,从此每次读都重算全表。
 const latencyScope = effectScope(true)
@@ -322,9 +325,11 @@ export const fetchProxies = () => clash.fetchProxies()
 // 所以在门面里兜住:失败弹提示,否则 UI 会停在旧选择上一声不吭。
 export const handlerProxySelect = async (proxyGroupName: string, proxyName: string) => {
   try {
-    return await clash.handlerProxySelect(proxyGroupName, proxyName)
+    await clash.handlerProxySelect(proxyGroupName, proxyName)
+    return true
   } catch (e) {
     notifyRequestError(e)
+    return false
   }
 }
 

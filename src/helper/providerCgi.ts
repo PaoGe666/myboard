@@ -29,3 +29,21 @@ export const callProviderCgi = async (
   const json = (await res.json()) as ProviderCgiResult
   return json
 }
+
+export const callLocalProviderCgi = async (
+  name: string,
+  nodes: Record<string, unknown>[],
+): Promise<ProviderCgiResult> => {
+  const base =
+    providerCgiBase.value ||
+    `${window.location.protocol}//${window.location.hostname}/cgi-bin/myboard_provider`
+  const endpoint = new URL(base)
+  endpoint.pathname = endpoint.pathname.replace(/myboard_provider\/?$/, 'myboard_local_provider')
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, nodes }),
+  })
+  return (await res.json()) as ProviderCgiResult
+}

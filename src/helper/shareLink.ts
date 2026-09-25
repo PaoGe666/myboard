@@ -227,8 +227,11 @@ const parseVlessTrojan = (
     if (params['host']) opts['headers'] = { Host: params['host'] }
     if (params['path']) opts['path'] = params['path']
     if (params['serviceName']) opts['serviceName'] = params['serviceName']
-    if (net === 'ws') node['ws-opts'] = opts
-    else if (net === 'grpc') {
+    if (net === 'ws') {
+      node['network'] = 'ws'
+      node['ws-opts'] = opts
+    } else if (net === 'grpc') {
+      node['network'] = 'grpc'
       if (params['serviceName'])
         (opts as Record<string, string>)['grpc-service-name'] = params['serviceName']
       node['grpc-opts'] = opts

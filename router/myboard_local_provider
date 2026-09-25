@@ -1,0 +1,48 @@
+#!/bin/sh
+# Create a persistent local Mihomo file proxy-provider from parsed node objects.
+printf 'Access-Control-Allow-Origin: *\r\n'
+printf 'Access-Control-Allow-Methods: POST, OPTIONS\r\n'
+printf 'Access-Control-Allow-Headers: Content-Type\r\n'
+printf 'Content-Type: application/json\r\n\r\n'
+
+if [ "${REQUEST_METHOD:-GET}" = "OPTIONS" ]; then
+  exit 0
+fi
+if [ "${REQUEST_METHOD:-GET}" != "POST" ]; then
+  printf '{"ok":false,"error":"POST required"}'
+  exit 0
+fi
+
+TMP_DIR=$(mktemp -d /tmp/myboard-local-provider.XXXXXX) || {
+  printf '{"ok":false,"error":"cannot create temporary directory"}'
+  exit 0
+}
+trap 'rm -rf "$TMP_DIR"' EXIT
+head -c "${CONTENT_LENGTH:-0}" >"$TMP_DIR/request.json"
+
+if ! ruby -rjson -e '
+  body = JSON.parse(File.read(ARGV[0]))
+  name = body["name"].to_s.strip
+  nodes = body["nodes"]
+  raise "订阅名称不能为空" if name.empty?
+  raise "节点列表为空" unless nodes.is_a?(Array) && !nodes.empty?
+  raise "节点数据无效" unless nodes.all? { |n| n.is_a?(Hash) && n["name"] && n["type"] }
+  File.write(ARGV[1], name)
+  File.write(ARGV[2], JSON.generate(nodes))
+' "$TMP_DIR/request.json" "$TMP_DIR/name" "$TMP_DIR/nodes.json" 2>"$TMP_DIR/error"; then
+  ruby -rjson -e 'puts JSON.generate(ok: false, error: File.read(ARGV[0]).strip)' "$TMP_DIR/error"
+  exit 0
+fi
+
+SCRIPT=/usr/share/openclash/myboard_provider.rb
+if [ ! -x /usr/bin/ruby ] || [ ! -f "$SCRIPT" ]; then
+  printf '{"ok":false,"error":"Myboard provider backend is not installed"}'
+  exit 0
+fi
+
+OUT=$(MYBOARD_RELOAD=1 /usr/bin/ruby "$SCRIPT" add-local "$(cat "$TMP_DIR/name")" "$TMP_DIR/nodes.json" 2>&1)
+if [ "${OUT#OK:}" != "$OUT" ]; then
+  ruby -rjson -e 'puts JSON.generate(ok: true, result: ARGV[0])' "$OUT"
+else
+  ruby -rjson -e 'puts JSON.generate(ok: false, error: ARGV[0])' "$OUT"
+fi

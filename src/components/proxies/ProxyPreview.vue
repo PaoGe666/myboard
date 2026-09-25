@@ -53,10 +53,10 @@
 </template>
 
 <script setup lang="ts">
-import { NOT_CONNECTED, PROXY_PREVIEW_TYPE } from '@/constant'
+import { NOT_CONNECTED, PROXY_PREVIEW_TYPE, PROXY_TYPE } from '@/constant'
 import { getColorForLatency } from '@/helper'
 import { useTooltip } from '@/helper/tooltip'
-import { latencyMapOf } from '@/assembly/proxies'
+import { latencyMapOf, proxyMap } from '@/assembly/proxies'
 import { lowLatency, mediumLatency, proxyPreviewType } from '@/store/settings'
 import { useElementSize } from '@vueuse/core'
 import { computed, ref } from 'vue'
@@ -71,9 +71,11 @@ const { showTip } = useTooltip()
 const previewRef = ref<HTMLElement | null>(null)
 const { width } = useElementSize(previewRef)
 
-const widthEnough = computed(() => {
-  return width.value > 16 * props.nodes.length
-})
+const previewNodes = computed(() =>
+  props.nodes.filter((name) => proxyMap.value[name]?.type.toLowerCase() !== PROXY_TYPE.Direct),
+)
+
+const widthEnough = computed(() => width.value > 16 * previewNodes.value.length)
 
 const makeTippy = (e: Event, node: { name: string; latency: number }) => {
   const tag = document.createElement('div')
@@ -95,11 +97,11 @@ const makeTippy = (e: Event, node: { name: string; latency: number }) => {
 }
 
 const getPreviewWidth = (count: number) => {
-  if (!props.nodes.length) {
+  if (!previewNodes.value.length) {
     return '0%'
   }
 
-  return `${(count * 100) / props.nodes.length}%`
+  return `${(count * 100) / previewNodes.value.length}%`
 }
 
 const showDots = computed(() => {
@@ -112,7 +114,7 @@ const showDots = computed(() => {
 // 查全局延迟表,几百个节点的预览条不必自己再顺链算一遍
 const latencyMap = latencyMapOf(() => props.groupName)
 const latencyList = computed(() =>
-  props.nodes.map((name) => latencyMap.value.get(name) ?? NOT_CONNECTED),
+  previewNodes.value.map((name) => latencyMap.value.get(name) ?? NOT_CONNECTED),
 )
 
 // 只有点阵形态需要逐节点的对象,进度条形态只要四个计数,别为几百个节点白建一遍数组
@@ -121,7 +123,7 @@ const nodesLatency = computed(() => {
     return []
   }
 
-  return props.nodes.map((name, index) => ({ name, latency: latencyList.value[index] }))
+  return previewNodes.value.map((name, index) => ({ name, latency: latencyList.value[index] }))
 })
 const getBgColor = (latency: number) => {
   if (latency === NOT_CONNECTED) {

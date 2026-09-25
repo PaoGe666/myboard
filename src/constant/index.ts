@@ -298,6 +298,8 @@ export enum PROXY_TYPE {
   LoadBalance = 'loadbalance',
 }
 
+export const MYBOARD_MANUAL_GROUP_PREFIX = '__myboard_manual__::'
+
 export const SIMPLE_CARD_STYLE = [
   [CONNECTIONS_TABLE_ACCESSOR_KEY.Host, CONNECTIONS_TABLE_ACCESSOR_KEY.ConnectTime],
   [

@@ -51,6 +51,10 @@ try {
   section('虚拟滚动')
   const page = await harness.openProxiesPage()
 
+  // 面板默认恢复上次选中的分页;回归数据从全新策略组页开始。
+  await page.evaluate(`document.querySelector('[role="tab"][data-value="proxies"]')?.click()`)
+  await sleep(500)
+
   await page.waitForCards(1)
   await sleep(1500)
 
@@ -74,27 +78,28 @@ try {
   await sleep(1200)
 
   const middle = await page.scrollMetrics()
-  // 视口里从上到下取若干个采样点,每个点都该被某张卡片盖住 —— 有一处没盖住就是露白了
-  const uncovered = await page.evaluate(`(() => {
+  // 双列卡片之间有正常的 12px 间距,检查是否出现明显空白带,而不是要求采样点
+  // 必须落在卡片内部(否则采样恰好落在卡片间距上会误报)。
+  const largestGap = await page.evaluate(`(() => {
     const scroller = document.querySelector('.overflow-y-scroll')
     const rect = scroller.getBoundingClientRect()
-    const cards = [...scroller.querySelectorAll('[data-group-name]')].map((el) =>
-      el.getBoundingClientRect(),
-    )
-    const from = rect.top + 80
-    const to = rect.bottom - 80
-    let missed = 0
+    const intervals = [...scroller.querySelectorAll('[data-group-name]')]
+      .map((el) => el.getBoundingClientRect())
+      .filter((r) => r.bottom > rect.top && r.top < rect.bottom)
+      .map((r) => ({ top: Math.max(r.top, rect.top), bottom: Math.min(r.bottom, rect.bottom) }))
+      .sort((a, b) => a.top - b.top)
+    let coveredUntil = rect.top
+    let largest = 0
 
-    for (let i = 0; i <= 10; i++) {
-      const y = from + ((to - from) * i) / 10
-
-      if (!cards.some((r) => r.top <= y && r.bottom >= y)) missed++
+    for (const interval of intervals) {
+      largest = Math.max(largest, interval.top - coveredUntil)
+      coveredUntil = Math.max(coveredUntil, interval.bottom)
     }
 
-    return missed
+    return Math.max(largest, rect.bottom - coveredUntil)
   })()`)
 
-  check('滚到中段后视口内没有露白', uncovered === 0, `11 个采样点里露白 ${uncovered} 个`)
+  check('滚到中段后视口内没有明显露白', largestGap <= 24, `最大空隙 ${largestGap}px`)
   /*
    * 没量过的卡片先用估算高度撑着,真正渲染出来后换成量到的高度,几像素的修正是正常的;
    * 不正常的是差出一屏 —— 那说明估算高度不对,滚动条会随着滚动明显伸缩、位置也会跳。
@@ -162,7 +167,7 @@ try {
   await page.scrollTo(0)
   await sleep(500)
   await page.evaluate(`(() => {
-    const input = document.querySelector('input[placeholder*="earch"]')
+    const input = document.querySelector('input[placeholder*="Regex"]')
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
     setter.call(input, 'Group-01')
     input.dispatchEvent(new Event('input', { bubbles: true }))
@@ -180,7 +185,7 @@ try {
   )
 
   await page.evaluate(`(() => {
-    const input = document.querySelector('input[placeholder*="earch"]')
+    const input = document.querySelector('input[placeholder*="Regex"]')
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
     setter.call(input, '')
     input.dispatchEvent(new Event('input', { bubbles: true }))
@@ -329,7 +334,7 @@ try {
       return originalScrollTo.apply(this, args)
     }
 
-    const input = document.querySelector('input[placeholder*="earch"]')
+    const input = document.querySelector('input[placeholder*="Regex"]')
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set
     setter.call(input, '${SELECTOR_GROUP}')
     input.dispatchEvent(new Event('input', { bubbles: true }))

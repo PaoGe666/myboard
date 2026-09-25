@@ -204,17 +204,29 @@ export const NODE_GROUP_BUCKET_ORDER = [
 ]
 
 const NODE_GROUP_BUCKET_RULES = [
-  { label: '香港', patterns: [/香港/, /\bhk\b/, /hong\s*kong/] },
-  { label: '台湾', patterns: [/台湾/, /\btw\b/, /taiwan/] },
-  { label: '日本', patterns: [/日本/, /\bjp\b/, /\bjpn\b/, /japan/] },
-  { label: '新加坡', patterns: [/新加坡/, /\bsg\b/, /\bsgp\b/, /singapore/] },
-  { label: '马来西亚', patterns: [/马来西亚/, /malaysia/, /\bmy\b/, /\bmys\b/] },
-  { label: '美国', patterns: [/美国/, /\bus\b/, /\busa\b/, /united\s*states/, /america/] },
-  { label: '韩国', patterns: [/韩国/, /\bkr\b/, /\bkor\b/, /korea/] },
-  { label: '德国', patterns: [/德国/, /\bde\b/, /germany/] },
-  { label: '英国', patterns: [/英国/, /\buk\b/, /\bgb\b/, /britain/, /united\s*kingdom/] },
-  { label: '荷兰', patterns: [/荷兰/, /\bnl\b/, /netherlands/] },
-  { label: '芬兰', patterns: [/芬兰/, /\bfi\b/, /finland/] },
+  { label: '香港', patterns: [/香港/, /\b(?:hk|hkg)\b/, /hong\s*kong/] },
+  { label: '台湾', patterns: [/台湾/, /\b(?:tw|twn|tpe)\b/, /taiwan/] },
+  { label: '日本', patterns: [/日本/, /\b(?:jp|jpn|tyo|nrt|hnd|kix|osa)\b/, /japan/] },
+  { label: '新加坡', patterns: [/新加坡/, /\b(?:sg|sgp|sin)\b/, /singapore/] },
+  { label: '马来西亚', patterns: [/马来西亚/, /malaysia/, /\b(?:my|mys|kul)\b/] },
+  {
+    label: '美国',
+    patterns: [
+      /美国/,
+      /凤凰城|phoenix/,
+      /\b(?:us|usa|lax|sjc|sfo|sea|nyc|iad|ord|dfw)\b/,
+      /united\s*states/,
+      /america/,
+    ],
+  },
+  { label: '韩国', patterns: [/韩国/, /\b(?:kr|kor|icn|sel)\b/, /korea/] },
+  { label: '德国', patterns: [/德国/, /\b(?:de|fra)\b/, /germany/] },
+  {
+    label: '英国',
+    patterns: [/英国/, /\b(?:uk|gb|lon|lhr)\b/, /britain/, /united\s*kingdom/],
+  },
+  { label: '荷兰', patterns: [/荷兰/, /\b(?:nl|ams)\b/, /netherlands/] },
+  { label: '芬兰', patterns: [/芬兰/, /\b(?:fi|hel)\b/, /finland/] },
   {
     label: '自建',
     patterns: [
@@ -354,9 +366,7 @@ export const isNodeGroup = (name: string) => {
     return true
   }
 
-  const children = proxyNode.all.filter((child) => child !== name)
-  const childGroups = children.filter((child) => isProxyGroup(child))
-  const childNodes = children.filter((child) => proxyMap.value[child] && !isProxyGroup(child))
-
-  return childNodes.length > 0 && childNodes.length >= childGroups.length
+  // 普通策略组也经常嵌套地区组；嵌套关系不能区分策略组和节点组。
+  // 只将名称明确匹配地区/节点桶的组归入节点组，避免策略组分页被筛空。
+  return false
 }

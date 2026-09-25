@@ -25,6 +25,20 @@
       @mouseenter="showVisibilityTip"
       @toggle="handlerGroupToggle"
     />
+    <label
+      v-if="canManual"
+      class="text-base-content/70 flex shrink-0 cursor-pointer items-center gap-1.5 text-xs"
+      @click.stop
+    >
+      <span>{{ $t('manual') }}</span>
+      <input
+        class="toggle toggle-primary toggle-xs"
+        type="checkbox"
+        :checked="manualMode"
+        :aria-label="$t('manual')"
+        @change.stop="emit('manual-toggle')"
+      />
+    </label>
     <LatencyTag
       :class="twMerge('bg-base-200/40 hover:bg-base-200/70')"
       :loading="isLatencyTesting"
@@ -66,10 +80,13 @@ const props = defineProps<{
   isLatencyTesting: boolean
   now?: string
   showWarning?: boolean
+  canManual?: boolean
+  manualMode?: boolean
 }>()
 
 const emit = defineEmits<{
   'latency-test': []
+  'manual-toggle': []
 }>()
 
 const { t } = useI18n()

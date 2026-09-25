@@ -125,6 +125,19 @@ const en = {
   upgradeDashboard: 'Upgrade dashboard',
   reloadConfigs: 'Reload configs',
   updateConfigs: 'Update configs',
+  vlessSubscription: 'Create VLESS subscription from Base64',
+  vlessSubscriptionTip:
+    'Paste and name the Base64 subscription. Its nodes will be saved as a local router subscription.',
+  vlessSubscriptionInput: 'Base64 content',
+  vlessSubscriptionInputPlaceholder: 'Paste Base64 encoded VLESS nodes here',
+  vlessSubscriptionOutput: 'Decoded VLESS links',
+  vlessSubscriptionCount: '{count} VLESS nodes decoded',
+  vlessSubscriptionCreate: 'Create local subscription',
+  vlessSubscriptionCreated: 'Local VLESS subscription created',
+  vlessSubscriptionInvalidContent: 'Decoded content contains non-VLESS lines.',
+  vlessSubscriptionDecodeFailed:
+    'Unable to decode. Check that the input is valid Base64 UTF-8 text.',
+  vlessSubscriptionCopyFailed: 'Could not copy links. Check clipboard permissions.',
   updateConfigsSuccess: 'Configs updated successfully',
   configFilePath: 'Config file path',
   configFilePathPlaceholder: 'Absolute path, e.g. /etc/mihomo/config.yaml',
@@ -176,9 +189,9 @@ const en = {
   connectionDetails: 'Connection details',
   customTheme: 'Custom theme',
   customCSS: 'Custom CSS',
+  unavailableProxy: 'Hide unavailable proxies',
   customCSSTip:
     'The styles below are injected into the page as-is. Invalid rules may break the layout.',
-  unavailableProxy: 'Hide unavailable proxies',
   protocolTips:
     'You are trying to connect to an HTTP backend, but zashboard is provided via HTTPS. This may cause connection errors. Please allow insecure content in your browser settings or use the HTTP version of zashboard, such as http://board.zash.run.place.',
   global: 'Global',
@@ -279,6 +292,7 @@ const en = {
   testing: 'Testing',
 
   testAllCustomNodes: 'Test all nodes',
+  testAllSubscriptions: 'Test all enabled subscription nodes',
   testNodeGroup: 'Test this node group',
 
   editCustomNode: 'Edit Node',
@@ -300,6 +314,9 @@ const en = {
   customNodes: 'Custom Nodes',
 
   addProvider: 'Add Subscription',
+  subscriptionUrl: 'Subscription URL',
+  base64Vless: 'VLESS Base64',
+  customNodeMode: 'Custom Node',
   providerName: 'Subscription Name',
   providerNamePlaceholder: 'e.g. Airport A',
   providerUrl: 'Subscription URL',
@@ -353,6 +370,7 @@ const en = {
   backgroundToneDarkThemeLabel: 'dark theme',
   minProxyCardWidth: 'Minimum proxy card width',
   displayGlobalByMode: 'Show GLOBAL based on mode',
+  providerAutoUpdate: 'Auto-update subscriptions',
   displaySelectedNode: 'Show selected node',
   displayLatencyNumber: 'Show latency numbers',
   disconnectOnRuleDisable: 'Disconnect matching connections when a rule is disabled',

@@ -10,7 +10,14 @@ import {
   selectProxyAPI,
 } from '@/api/clash'
 import { disconnectByIdAPI } from '@/assembly/connections'
-import { GLOBAL, IPV6_TEST_URL, NOT_CONNECTED, PROXY_TYPE, SPEEDTEST_MODE } from '@/constant'
+import {
+  GLOBAL,
+  IPV6_TEST_URL,
+  MYBOARD_MANUAL_GROUP_PREFIX,
+  NOT_CONNECTED,
+  PROXY_TYPE,
+  SPEEDTEST_MODE,
+} from '@/constant'
 import { getConnectionChains, isProxyGroup } from '@/helper'
 import { showNotification } from '@/helper/notification'
 import { notifyRequestError } from '@/helper/requestError'
@@ -34,6 +41,7 @@ import {
   getNowProxyNodeName,
   getTestUrl,
   IPv6Map,
+  isProxyEnabled,
   proxyGroupList,
   proxyMap,
   proxyProviederList,
@@ -73,7 +81,12 @@ export const fetchProxies = async () => {
     ...proxyData.proxies,
   }
   proxyGroupList.value = Object.values(proxyData.proxies)
-    .filter((proxy) => proxy.all?.length && proxy.name !== GLOBAL)
+    .filter(
+      (proxy) =>
+        proxy.all?.length &&
+        proxy.name !== GLOBAL &&
+        !proxy.name.startsWith(MYBOARD_MANUAL_GROUP_PREFIX),
+    )
     .sort((prev, next) => {
       const prevIndex = sortIndex.indexOf(prev.name)
       const nextIndex = sortIndex.indexOf(next.name)
@@ -229,6 +242,36 @@ const isLatencyTestable = (name: string) => {
   return !type || !untestableProxyTypes.has(type)
 }
 
+const getGroupLeafProxies = (groupName: string, visited = new Set<string>()): string[] => {
+  if (visited.has(groupName)) return []
+  visited.add(groupName)
+
+  const result: string[] = []
+  for (const name of proxyMap.value[groupName]?.all ?? []) {
+    if (name.startsWith(MYBOARD_MANUAL_GROUP_PREFIX)) continue
+
+    if (isProxyGroup(name)) {
+      result.push(...getGroupLeafProxies(name, visited))
+    } else if (isLatencyTestable(name) && isProxyEnabled(name)) {
+      result.push(name)
+    }
+  }
+
+  return result
+}
+
+const groupHasDisabledProviderNodes = (groupName: string, visited = new Set<string>()): boolean => {
+  if (visited.has(groupName)) return false
+  visited.add(groupName)
+
+  return (proxyMap.value[groupName]?.all ?? []).some((name) => {
+    if (name.startsWith(MYBOARD_MANUAL_GROUP_PREFIX)) return false
+
+    if (isProxyGroup(name)) return groupHasDisabledProviderNodes(name, visited)
+    return !isProxyEnabled(name)
+  })
+}
+
 // tipName 只用于提示文案(可能是 i18n 的「全部」),groupName 才是延迟落桶用的真实组名。
 const testLatencyOneByOneWithTip = async (
   tipName: string,
@@ -292,8 +335,24 @@ const testLatencyOneByOneWithTip = async (
 
 export const proxyGroupLatencyTest = async (proxyGroupName: string) => {
   const proxyNode = proxyMap.value[proxyGroupName]
-  const all = (proxyNode.all ?? []).filter(isLatencyTestable)
+  const all = (proxyNode.all ?? []).filter(
+    (name) =>
+      !name.startsWith(MYBOARD_MANUAL_GROUP_PREFIX) &&
+      isLatencyTestable(name) &&
+      isProxyEnabled(name),
+  )
   const url = getTestUrl(proxyGroupName)
+
+  // Core group tests include every provider member. If a nested group contains a disabled
+  // subscription, test only enabled leaf nodes through the per-node API instead.
+  if (groupHasDisabledProviderNodes(proxyGroupName)) {
+    return testLatencyOneByOneWithTip(
+      proxyGroupName,
+      [...new Set(getGroupLeafProxies(proxyGroupName))],
+      url,
+      proxyGroupName,
+    )
+  }
 
   if (
     speedtestMode.value === SPEEDTEST_MODE.DASHBOARD &&
@@ -369,7 +428,7 @@ export const allProxiesLatencyTest = async () => {
   }
 
   const proxyNode = Object.keys(proxyMap.value).filter(
-    (proxy) => !isProxyGroup(proxy) && isLatencyTestable(proxy),
+    (proxy) => !isProxyGroup(proxy) && isLatencyTestable(proxy) && isProxyEnabled(proxy),
   )
 
   return testLatencyOneByOneWithTip(i18n.global.t('all'), proxyNode)

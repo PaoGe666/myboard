@@ -114,6 +114,30 @@
             ]"
           />
         </SettingItem>
+        <SettingItem :setting-key="k.providerAutoUpdate">
+          <div class="setting-item-label">
+            {{ $t('providerAutoUpdate') }}
+          </div>
+          <input
+            class="toggle"
+            type="checkbox"
+            :checked="providerAutoUpdateInterval > 0"
+            @change="
+              providerAutoUpdateInterval = ($event.target as HTMLInputElement).checked
+                ? providerAutoUpdateMinutes * 60000
+                : 0
+            "
+          />
+          <input
+            v-if="providerAutoUpdateInterval > 0"
+            class="input input-sm w-20"
+            type="number"
+            min="1"
+            step="1"
+            v-model.number="providerAutoUpdateMinutes"
+          />
+          <span v-if="providerAutoUpdateInterval > 0">分钟</span>
+        </SettingItem>
         <SettingItem :setting-key="k.twoColumnProxyGroup">
           <div class="setting-item-label">
             {{ $t('twoColumnProxyGroup') }}
@@ -249,6 +273,7 @@ import {
   speedtestUrl,
   truncateProxyName,
   proxyFolderMode,
+  providerAutoUpdateInterval,
   twoColumnProxyGroup,
 } from '@/store/settings'
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
@@ -259,6 +284,13 @@ import GroupTestUrlsSettings from './GroupTestUrlsSettings.vue'
 import IconSettings from './IconSettings.vue'
 
 const k = PROXIES_ITEM_KEYS
+const providerAutoUpdateMinutes = computed({
+  get: () => Math.max(1, Math.round(providerAutoUpdateInterval.value / 60000)),
+  set: (minutes: number) => {
+    const value = Number.isFinite(minutes) ? Math.max(1, Math.round(minutes)) : 1
+    providerAutoUpdateInterval.value = value * 60000
+  },
+})
 const isVisibleSpeedtestUrl = useIsSettingVisible(k.speedtestUrl)
 const isVisibleSpeedtestTimeout = useIsSettingVisible(k.speedtestTimeout)
 const isVisibleSpeedtestMode = useIsSettingVisible(k.speedtestMode)
@@ -269,6 +301,7 @@ const isVisibleIndependentLatencyTest = useIsSettingVisible(k.independentLatency
 const isVisibleGroupTestUrls = useIsSettingVisible(k.groupTestUrls)
 const isVisibleTwoColumnProxyGroup = useIsSettingVisible(k.twoColumnProxyGroup)
 const isVisibleProxyFolderMode = useIsSettingVisible(k.proxyFolderMode)
+const isVisibleProviderAutoUpdate = useIsSettingVisible(k.providerAutoUpdate)
 const isVisibleTruncateProxyName = useIsSettingVisible(k.truncateProxyName)
 const isVisibleDisplayGlobalByMode = useIsSettingVisible(k.displayGlobalByMode)
 const isVisibleProxyPreviewType = useIsSettingVisible(k.proxyPreviewType)
@@ -309,6 +342,7 @@ const hasVisibleProxyStyleItems = computed(() => {
   return (
     isVisibleTwoColumnProxyGroup.value ||
     isVisibleProxyFolderMode.value ||
+    isVisibleProviderAutoUpdate.value ||
     isVisibleTruncateProxyName.value ||
     isVisibleDisplayGlobalByMode.value ||
     isVisibleProxyPreviewType.value ||

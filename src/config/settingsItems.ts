@@ -331,6 +331,11 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
         section: 'settingsSectionProxyDisplay',
       },
       {
+        key: `${SETTINGS_MENU_KEY.proxies}.providerAutoUpdate`,
+        label: 'providerAutoUpdate',
+        section: 'settingsSectionProxyDisplay',
+      },
+      {
         key: `${SETTINGS_MENU_KEY.proxies}.twoColumnProxyGroup`,
         label: 'twoColumnProxyGroup',
         section: 'settingsSectionProxyDisplay',

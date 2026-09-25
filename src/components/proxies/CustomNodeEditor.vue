@@ -10,6 +10,7 @@ defineOptions({ name: 'CustomNodeEditor' })
 const props = defineProps<{
   initial?: Record<string, unknown> | null
   groupNames?: string[]
+  showTitle?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -39,6 +40,7 @@ const tls = ref(Boolean(props.initial?.['tls']))
 const network = ref(read('network', 'tcp'))
 const wsPath = ref(read('ws-opts.path', '/'))
 const initialReality = (props.initial?.['reality-opts'] ?? {}) as Record<string, unknown>
+const initialGroupName = String(props.initial?.['__myboardGroupName'] ?? '')
 const initialWs = (props.initial?.['ws-opts'] ?? {}) as Record<string, unknown>
 const initialWsHeaders = (initialWs.headers ?? {}) as Record<string, unknown>
 const wsHost = ref(String(initialWsHeaders.Host ?? initialWsHeaders.host ?? ''))
@@ -48,7 +50,7 @@ const realityPublicKey = ref(String(initialReality['public-key'] ?? ''))
 const realityShortId = ref(String(initialReality['short-id'] ?? ''))
 const dialerProxy = ref(read('dialer-proxy'))
 const udp = ref(Boolean(props.initial?.udp))
-const groupName = ref(String(props.initial?.['__myboardGroupName'] ?? ''))
+const groupName = ref(initialGroupName)
 const rawConfigText = ref(props.initial ? JSON.stringify(props.initial, null, 2) : '')
 
 const shareLinkText = ref('')
@@ -186,14 +188,24 @@ const buildNode = (): Record<string, unknown> => {
 const handlerSave = () => {
   if (!isValid.value) return
   let node = buildNode()
-  if (props.initial) node = { ...props.initial, ...node }
+  if (props.initial) {
+    node = { ...props.initial, ...node }
+    // An unchanged group came from the old name's automatic assignment.
+    // Let the router reclassify the renamed node from its new name.
+    if (groupName.value === initialGroupName) delete node['__myboardGroupName']
+  }
   emit('save', node)
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-3 p-2 text-sm">
-    <div class="card-title">{{ props.initial ? $t('editCustomNode') : $t('addCustomNode') }}</div>
+    <div
+      v-if="props.showTitle !== false"
+      class="card-title"
+    >
+      {{ props.initial ? $t('editCustomNode') : $t('addCustomNode') }}
+    </div>
 
     <details class="bg-base-200/40 rounded-xl">
       <summary class="text-base-content/70 cursor-pointer px-3 py-2 text-xs">

@@ -7,7 +7,7 @@ import {
   proxyMap,
   proxyProviederList,
 } from '@/assembly/proxies'
-import { GLOBAL, PROXY_TAB_TYPE, PROXY_TYPE } from '@/constant'
+import { GLOBAL, MYBOARD_MANUAL_GROUP_PREFIX, PROXY_TAB_TYPE, PROXY_TYPE } from '@/constant'
 import {
   getNodeGroupBucketName,
   isExcludedProxyGroup,
@@ -53,7 +53,9 @@ const getAllGroups = () => {
       : proxyGroupList.value
     : [...proxyGroupList.value, GLOBAL]
 
-  return allGroups.filter((name) => !isExcludedProxyGroup(name))
+  return allGroups.filter(
+    (name) => !name.startsWith(MYBOARD_MANUAL_GROUP_PREFIX) && !isExcludedProxyGroup(name),
+  )
 }
 
 const getRenderProxyGroups = () => {
@@ -63,14 +65,23 @@ const getRenderProxyGroups = () => {
 
   if (displayGlobalByMode.value) {
     if (configs.value?.mode.toUpperCase() === GLOBAL) {
-      return filterProxyGroups(getProxyGroupChains(GLOBAL), false)
+      return filterProxyGroups(
+        getProxyGroupChains(GLOBAL).filter((name) => !name.startsWith(MYBOARD_MANUAL_GROUP_PREFIX)),
+        false,
+      )
     }
 
-    return filterProxyGroups(proxyGroupList.value)
+    return filterProxyGroups(
+      proxyGroupList.value.filter((name) => !name.startsWith(MYBOARD_MANUAL_GROUP_PREFIX)),
+    )
   }
 
   const globalGroups = proxyMap.value[GLOBAL] ? [GLOBAL] : []
-  return filterProxyGroups([...proxyGroupList.value, ...globalGroups])
+  return filterProxyGroups(
+    [...proxyGroupList.value, ...globalGroups].filter(
+      (name) => !name.startsWith(MYBOARD_MANUAL_GROUP_PREFIX),
+    ),
+  )
 }
 
 const getRenderProxyProviders = () => {

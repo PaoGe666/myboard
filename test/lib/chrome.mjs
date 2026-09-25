@@ -1,5 +1,5 @@
 // 启动一次性的 headless Chrome:用临时 user-data-dir,跑完就删,不碰用户自己的浏览器配置。
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -17,10 +17,22 @@ const CANDIDATES = [
 ].filter(Boolean)
 
 const resolveChrome = () => {
+  // 优先采用实际存在的显式路径，不让机器上不存在的默认命令遮住它。
   for (const candidate of CANDIDATES) {
-    // 带路径的候选要求文件真的在;裸命令名交给 PATH 解析,启动失败时再报错
-    if (!candidate.includes('/') && !candidate.includes('\\')) return candidate
-    if (existsSync(candidate)) return candidate
+    if ((candidate.includes('/') || candidate.includes('\\')) && existsSync(candidate)) {
+      return candidate
+    }
+  }
+
+  // 裸命令必须先确认能从 PATH 启动，否则可能选中一个不存在的 chrome 命令。
+  for (const candidate of CANDIDATES) {
+    if (candidate.includes('/') || candidate.includes('\\')) continue
+
+    const result = spawnSync(candidate, ['--version'], { stdio: 'ignore' })
+
+    if (!result.error && result.status === 0) {
+      return candidate
+    }
   }
 
   throw new Error(

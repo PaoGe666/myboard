@@ -27,6 +27,50 @@ import { debounce } from 'lodash'
 import ReconnectingWebSocket from 'reconnectingwebsocket'
 import { shallowRef } from 'vue'
 
+// A few third-party providers emit raw control characters inside proxy names.
+// Their JSON responses are technically malformed, but the rest of the payload
+// is usable. Escape only unescaped control characters inside JSON strings so
+// provider refreshes (including the health-check polling loop) can continue.
+const parseClashJson = (body: unknown) => {
+  if (typeof body !== 'string') return body
+
+  try {
+    return JSON.parse(body)
+  } catch (error) {
+    if (!(error instanceof SyntaxError) || !/control character/i.test(error.message)) {
+      throw error
+    }
+  }
+
+  let sanitized = ''
+  let inString = false
+  let escaped = false
+
+  for (const character of body) {
+    const code = character.charCodeAt(0)
+    if (inString && !escaped && code < 0x20) {
+      sanitized += `\\u${code.toString(16).padStart(4, '0')}`
+      continue
+    }
+
+    sanitized += character
+    if (inString && escaped) {
+      escaped = false
+    } else if (inString && character === '\\') {
+      escaped = true
+    } else if (character === '"') {
+      inString = !inString
+    }
+  }
+
+  return JSON.parse(sanitized)
+}
+
+const clashJsonResponseConfig = {
+  responseType: 'text' as const,
+  transformResponse: [parseClashJson],
+}
+
 // ==========================================================================
 // mihomo 标准
 // ==========================================================================
@@ -34,7 +78,7 @@ import { shallowRef } from 'vue'
 export const fetchClashVersion = () => axios.get<{ version: string }>('/version')
 
 export const fetchProxiesAPI = () => {
-  return axios.get<{ proxies: Record<string, Proxy> }>('/proxies')
+  return axios.get<{ proxies: Record<string, Proxy> }>('/proxies', clashJsonResponseConfig)
 }
 
 export const selectProxyAPI = (proxyGroup: string, name: string) => {
@@ -84,7 +128,10 @@ export const fetchProxyGroupLatencyAPI = (proxyName: string, url: string, timeou
 }
 
 export const fetchProxyProviderAPI = () => {
-  return axios.get<{ providers: Record<string, ProxyProvider> }>('/providers/proxies')
+  return axios.get<{ providers: Record<string, ProxyProvider> }>(
+    '/providers/proxies',
+    clashJsonResponseConfig,
+  )
 }
 
 export const updateProxyProviderAPI = (name: string) => {
@@ -96,12 +143,15 @@ export const deleteProxyProviderAPI = (name: string) => {
 }
 
 export const proxyProviderHealthCheckAPI = (name: string) => {
-  return axios.get<Record<string, number>>(
-    `/providers/proxies/${encodeURIComponent(name)}/healthcheck`,
-    {
-      timeout: 15000,
-    },
-  )
+  // Mihomo returns a JSON map keyed by node names. Some providers contain
+  // control characters in names, which can make that body invalid JSON even
+  // though the health check itself was accepted. The UI tracks completion
+  // through refreshed provider history, so keep this acknowledgement as text.
+  return axios.get<string>(`/providers/proxies/${encodeURIComponent(name)}/healthcheck`, {
+    timeout: 15000,
+    responseType: 'text',
+    transformResponse: [(body) => body],
+  })
 }
 
 export const fetchRulesAPI = () => {

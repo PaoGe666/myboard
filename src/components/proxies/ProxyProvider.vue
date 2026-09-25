@@ -22,7 +22,10 @@
           </label>
           <button
             class="btn btn-circle btn-ghost btn-sm z-30"
+            :disabled="!isEnabled || isHealthChecking"
             @click.stop="healthCheckClickHandler"
+            :aria-label="isHealthChecking ? '订阅测速中' : '测试订阅延迟'"
+            :title="isHealthChecking ? '订阅测速中' : '测试订阅延迟'"
           >
             <span
               v-if="isHealthChecking"
@@ -67,8 +70,37 @@
             <span>{{ subscriptionInfo.expireStr }}</span>
           </div>
         </div>
+        <div
+          v-if="isHealthChecking"
+          class="text-primary flex items-center gap-2 text-xs"
+          role="status"
+          aria-live="polite"
+        >
+          <span class="loading loading-spinner loading-xs"></span>
+          <span>正在测试此订阅的节点延迟…</span>
+        </div>
         <div class="text-base-content/60 text-xs">
           {{ $t('updated') }} {{ fromNow(proxyProvider.updatedAt) }}
+        </div>
+        <div class="text-base-content/60 flex items-center gap-2 text-xs">
+          <span>自动更新</span>
+          <input
+            type="checkbox"
+            class="toggle toggle-xs"
+            :checked="autoUpdateEnabled"
+            @change="toggleAutoUpdate"
+          />
+          <template v-if="autoUpdateEnabled">
+            <input
+              v-model.number="autoUpdateMinutes"
+              class="input input-xs h-6 w-16"
+              type="number"
+              min="1"
+              step="1"
+              title="自动更新间隔（分钟）"
+            />
+            <span>分钟</span>
+          </template>
         </div>
       </div>
     </template>
@@ -83,7 +115,6 @@
 
 <script setup lang="ts">
 import {
-  deleteProxyProviderAPI,
   fetchProxies,
   proxyProviderHealthCheckAPI,
   reconcileDisabledProviderSelections,
@@ -97,7 +128,11 @@ import { showNotification } from '@/helper/notification'
 import { callProviderCgi } from '@/helper/providerCgi'
 import { notifyRequestError } from '@/helper/requestError'
 import { fromNow, prettyBytesHelper } from '@/helper/utils'
-import { providerEnabledMap } from '@/store/settings'
+import {
+  providerAutoUpdateInterval,
+  providerAutoUpdateIntervals,
+  providerEnabledMap,
+} from '@/store/settings'
 import { ArrowPathIcon, BoltIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import dayjs from 'dayjs'
 import { toFinite } from 'lodash'
@@ -112,11 +147,14 @@ const props = defineProps<{
   name: string
 }>()
 
+const { t } = useI18n()
+
 const proxyProvider = computed(() =>
   proxyProviederList.value.find((group) => group.name === props.name)!,
 )
 const allProxies = computed(() => proxyProvider.value.proxies.map((node) => node.name) ?? [])
-const { renderProxies, proxiesCount } = useRenderProxyList(allProxies)
+// 订阅详情必须能查看完整节点清单，不能被全局“隐藏不可用节点”筛掉。
+const { renderProxies, proxiesCount } = useRenderProxyList(allProxies, undefined, true)
 
 const subscriptionInfo = computed(() => {
   const info = proxyProvider.value.subscriptionInfo
@@ -160,11 +198,39 @@ const usageBarColor = computed(() => {
 
 const isUpdating = ref(false)
 const isHealthChecking = ref(false)
+const latestHistoryTime = (history?: { time: string }[]) =>
+  Math.max(0, ...(history ?? []).map(({ time }) => Date.parse(time) || 0))
 
 // 订阅启用状态,默认 true(启用)
 const isEnabled = computed(() => {
   return providerEnabledMap.value[props.name] !== false
 })
+const autoUpdateMinutes = computed({
+  get: () =>
+    Math.max(
+      1,
+      Math.round(
+        (providerAutoUpdateIntervals.value[props.name] ?? providerAutoUpdateInterval.value) / 60000,
+      ),
+    ),
+  set: (minutes: number) => {
+    const value = Number.isFinite(minutes) ? Math.max(1, Math.round(minutes)) : 1
+    providerAutoUpdateIntervals.value = {
+      ...providerAutoUpdateIntervals.value,
+      [props.name]: value * 60000,
+    }
+  },
+})
+const autoUpdateEnabled = computed(
+  () => (providerAutoUpdateIntervals.value[props.name] ?? providerAutoUpdateInterval.value) > 0,
+)
+const toggleAutoUpdate = (event: Event) => {
+  const enabled = (event.target as HTMLInputElement).checked
+  const next = { ...providerAutoUpdateIntervals.value }
+  if (enabled) next[props.name] = Math.max(1, autoUpdateMinutes.value) * 60000
+  else next[props.name] = 0
+  providerAutoUpdateIntervals.value = next
+}
 
 const toggleEnabled = async () => {
   const current = providerEnabledMap.value[props.name] !== false
@@ -188,7 +254,6 @@ const toggleEnabled = async () => {
 }
 
 const deleteProviderClickHandler = async () => {
-  const { t } = useI18n()
   const { confirmed } = await showConfirmDialog({
     title: t('deleteProviderTitle', { name: props.name }),
     message: t('deleteProviderMessage', { name: props.name }),
@@ -197,12 +262,9 @@ const deleteProviderClickHandler = async () => {
   if (!confirmed) return
 
   try {
-    // 优先从配置中永久移除(OpenClash 经 CGI),避免重启后旧订阅复活
+    // 从配置中永久移除，失败时直接报告后端错误，不能假装临时删除成功。
     const cgi = await callProviderCgi('delete', props.name)
-    if (!cgi.ok) {
-      // CGI 不可用(非 OpenClash)时回退到 API 临时移除
-      await deleteProxyProviderAPI(props.name)
-    }
+    if (!cgi.ok) throw new Error(cgi.error || 'failed to delete provider')
     await fetchProxies()
     showNotification({
       content: 'deleteProviderSuccess',
@@ -214,12 +276,28 @@ const deleteProviderClickHandler = async () => {
 }
 
 const healthCheckClickHandler = async () => {
-  if (isHealthChecking.value) return
+  if (isHealthChecking.value || !isEnabled.value) return
 
   isHealthChecking.value = true
   try {
+    const previousHistory = new Map(
+      proxyProvider.value.proxies.map((proxy) => [proxy.name, latestHistoryTime(proxy.history)]),
+    )
     await proxyProviderHealthCheckAPI(props.name)
-    await fetchProxies()
+    // Mihomo accepts the request immediately, then checks the provider's nodes asynchronously.
+    // Keep the spinner visible and refresh until every node has a new result (or 30s elapse).
+    const deadline = Date.now() + 30_000
+    do {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await fetchProxies()
+      const updatedProvider = proxyProviederList.value.find(
+        (provider) => provider.name === props.name,
+      )
+      const finished = updatedProvider?.proxies.every(
+        (proxy) => latestHistoryTime(proxy.history) > (previousHistory.get(proxy.name) ?? 0),
+      )
+      if (finished) break
+    } while (Date.now() < deadline)
   } catch (e) {
     notifyRequestError(e)
   } finally {

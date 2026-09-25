@@ -1,4 +1,5 @@
 import {
+  hasLatencyHistoryByName,
   isProxyEnabled,
   latencyMapOf,
   proxyMap,
@@ -22,17 +23,22 @@ export type ProxiesProviderSection = {
   proxies: string[]
 }
 
-export const groupProxiesByProviderName = (proxies: string[]): ProxiesProviderSection[] => {
+export const groupProxiesByProviderName = (
+  proxies: string[],
+  customNames: ReadonlySet<string> = new Set(),
+  customGroupName = '',
+): ProxiesProviderSection[] => {
   const proxiesOfProvider: Record<string, string[]> = {}
   const providerKeys: string[] = []
 
   for (const proxy of proxies) {
     const proxyNode = proxyMap.value[proxy]
-    const providerName =
-      proxyNode['provider-name'] ||
-      (proxyProviederList.value.find((group) => group.proxies.find((node) => node.name === proxy))
-        ?.name ??
-        '')
+    const providerName = customNames.has(proxy)
+      ? customGroupName
+      : proxyNode['provider-name'] ||
+        proxyProviederList.value.find((group) => group.proxies.find((node) => node.name === proxy))
+          ?.name ||
+        ''
 
     if (proxiesOfProvider[providerName]) {
       proxiesOfProvider[providerName].push(proxy)
@@ -54,11 +60,21 @@ export const groupProxiesByProviderName = (proxies: string[]): ProxiesProviderSe
 }
 
 // 延迟一律取自 assembly 的全局延迟表(按测速 url 分桶),这里只负责筛选与排序。
-export function useRenderProxyList(proxies: ComputedRef<string[]>, groupName?: string) {
+export function useRenderProxyList(
+  proxies: ComputedRef<string[]>,
+  groupName?: string,
+  includeUnavailable = false,
+) {
   const latencyMap = latencyMapOf(groupName)
 
   const renderProxies = computed(() => {
-    const filtered = filterProxies(proxies.value, groupName, latencyMap.value)
+    const filtered = filterProxies(
+      proxies.value,
+      groupName,
+      latencyMap.value,
+      undefined,
+      includeUnavailable,
+    )
 
     return sortProxies(filtered, groupName, latencyMap.value)
   })
@@ -83,9 +99,17 @@ export function useRenderProxies(
   proxies: ComputedRef<string[]>,
   proxyGroup?: string,
   modeFilter?: 'auto' | 'manual',
+  includeUnavailable = false,
+  preserveOrder = false,
 ) {
   const renderProxies = computed(() => {
-    return getRenderProxies(proxies.value, proxyGroup, modeFilter)
+    return getRenderProxies(
+      proxies.value,
+      proxyGroup,
+      modeFilter,
+      includeUnavailable,
+      preserveOrder,
+    )
   })
   const proxiesCount = computed(() => {
     const latencyMap = latencyMapOf(proxyGroup).value
@@ -101,10 +125,12 @@ export const getRenderProxies = (
   proxies: string[],
   groupName?: string,
   modeFilter?: 'auto' | 'manual',
+  includeUnavailable = false,
+  preserveOrder = false,
 ) => {
   const latencyMap = latencyMapOf(groupName).value
-  const filtered = filterProxies(proxies, groupName, latencyMap, modeFilter)
-  return sortProxies(filtered, groupName, latencyMap)
+  const filtered = filterProxies(proxies, groupName, latencyMap, modeFilter, includeUnavailable)
+  return preserveOrder ? filtered : sortProxies(filtered, groupName, latencyMap)
 }
 
 const filterProxies = (
@@ -112,13 +138,35 @@ const filterProxies = (
   groupName: string | undefined,
   latencyMap: LatencyMap,
   modeFilter?: 'auto' | 'manual',
+  includeUnavailable = false,
 ) => {
   let result = proxies
 
   if (modeFilter) {
     result = result.filter((name) => {
+      if (!isProxyEnabled(name)) {
+        return false
+      }
+
       if (isProxyGroup(name)) {
         return hasProxyGroupMode(name, modeFilter)
+      }
+
+      // 自动/手动分页中，手写节点只属于“手动选择”列表。某些后端会把
+      // 自定义节点直接写进策略组的 all，若在自动模式照单渲染就会出现
+      // “自定义节点”分段；订阅节点仍通过 provider-name 保留在自动列表。
+      if (modeFilter === 'auto') {
+        const node = proxyMap.value[name]
+        const belongsToProvider = Boolean(
+          node?.['provider-name'] ||
+          proxyProviederList.value.some((provider) =>
+            provider.proxies.some((proxy) => proxy.name === name),
+          ),
+        )
+
+        if (!belongsToProvider) {
+          return false
+        }
       }
 
       return groupName ? getDirectProxyGroupMode(groupName) === modeFilter : true
@@ -127,9 +175,12 @@ const filterProxies = (
     result = result.filter((name) => isProxyGroup(name) || isProxyEnabled(name))
   }
 
-  if (hideUnavailableProxies.value) {
+  if (hideUnavailableProxies.value && !includeUnavailable) {
     result = result.filter(
-      (name) => isProxyGroup(name) || (latencyMap.get(name) ?? NOT_CONNECTED) > NOT_CONNECTED,
+      (name) =>
+        isProxyGroup(name) ||
+        !hasLatencyHistoryByName(name, groupName) ||
+        (latencyMap.get(name) ?? NOT_CONNECTED) > NOT_CONNECTED,
     )
   }
 

@@ -69,6 +69,7 @@ export const startHarness = async ({
         ]),
       )})
       localStorage.setItem('setup/active-uuid', 'perf')
+      localStorage.setItem('config/proxy-folder-mode-setting', 'off')
       ${Object.entries(settings)
         .map(
           ([key, value]) =>

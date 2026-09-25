@@ -195,7 +195,7 @@ try {
   await page.evaluate(`(() => {
     document.querySelector('.collapse-motion-header').click()
     setTimeout(() => {
-      const input = document.querySelector('input[placeholder*="earch"]')
+    const input = document.querySelector('input[placeholder*="Regex"]')
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '__no_matching_group__')
       input.dispatchEvent(new Event('input', { bubbles: true }))
     }, 100)

@@ -127,6 +127,19 @@ const ru: LANG_MESSAGE = {
   upgradeDashboard: 'Обновить панель до новой версии',
   reloadConfigs: 'Перезагрузить конфигурации',
   updateConfigs: 'Обновить конфигурации',
+  vlessSubscription: 'Создать подписку VLESS из Base64',
+  vlessSubscriptionTip:
+    'Вставьте содержимое подписки Base64 и задайте имя. Узлы будут сохранены как локальная подписка роутера.',
+  vlessSubscriptionInput: 'Содержимое Base64',
+  vlessSubscriptionInputPlaceholder: 'Вставьте Base64-кодированные узлы VLESS',
+  vlessSubscriptionOutput: 'Декодированные ссылки VLESS',
+  vlessSubscriptionCount: 'Декодировано узлов VLESS: {count}',
+  vlessSubscriptionCreate: 'Создать локальную подписку',
+  vlessSubscriptionCreated: 'Локальная подписка VLESS создана',
+  vlessSubscriptionInvalidContent: 'Декодированное содержимое содержит строки не VLESS.',
+  vlessSubscriptionDecodeFailed:
+    'Не удалось декодировать. Проверьте корректность текста Base64 UTF-8.',
+  vlessSubscriptionCopyFailed: 'Не удалось скопировать ссылки. Проверьте доступ к буферу обмена.',
   updateConfigsSuccess: 'Конфигурации успешно обновлены',
   configFilePath: 'Путь к файлу конфигурации',
   configFilePathPlaceholder: 'Абсолютный путь, например /etc/mihomo/config.yaml',
@@ -178,9 +191,9 @@ const ru: LANG_MESSAGE = {
   connectionDetails: 'Детали подключения',
   customTheme: 'Пользовательская тема',
   customCSS: 'Пользовательский CSS',
+  unavailableProxy: 'Скрыть недоступное',
   customCSSTip:
     'Указанные стили встраиваются в страницу как есть. Некорректные правила могут сломать вёрстку.',
-  unavailableProxy: 'Скрыть недоступное',
   protocolTips:
     'Вы пытаетесь подключиться к HTTP-бэкенду, но zashboard предоставляется через HTTPS. Это может вызвать ошибки подключения. Разрешите небезопасный контент в настройках браузера или используйте HTTP-версию панели, например, http://board.zash.run.place.',
   global: 'Глобальный',
@@ -282,6 +295,7 @@ const ru: LANG_MESSAGE = {
   testing: 'Замер',
 
   testAllCustomNodes: 'Проверить все узлы',
+  testAllSubscriptions: 'Проверить узлы всех включённых подписок',
   testNodeGroup: 'Проверить эту группу узлов',
 
   editCustomNode: 'Изменить узел',
@@ -303,6 +317,9 @@ const ru: LANG_MESSAGE = {
   customNodes: 'Свои узлы',
 
   addProvider: 'Добавить подписку',
+  subscriptionUrl: 'Ссылка подписки',
+  base64Vless: 'VLESS Base64',
+  customNodeMode: 'Пользовательский узел',
   providerName: 'Имя подписки',
   providerNamePlaceholder: 'например Airport A',
   providerUrl: 'URL подписки',
@@ -356,6 +373,7 @@ const ru: LANG_MESSAGE = {
   backgroundToneDarkThemeLabel: 'темная тема',
   minProxyCardWidth: 'Минимальная ширина карточки прокси',
   displayGlobalByMode: 'Отображать GLOBAL по режиму',
+  providerAutoUpdate: 'Автообновление подписок',
   displaySelectedNode: 'Отображать выбранный узел',
   displayLatencyNumber: 'Отображать задержку',
   disconnectOnRuleDisable: 'Разрывать соединения при отключении правила',
