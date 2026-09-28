@@ -58,7 +58,7 @@
 <script setup lang="ts">
 import { useBounceOnVisible } from '@/composables/bouncein'
 import { useRenderProxies } from '@/composables/renderProxies'
-import { customNodeNames } from '@/composables/proxies'
+import { customNodeNames, customNodeNamesSet } from '@/composables/proxies'
 import { MYBOARD_MANUAL_GROUP_PREFIX, PROXY_TYPE } from '@/constant'
 import { isMiddleScreen } from '@/helper/utils'
 import {
@@ -115,7 +115,7 @@ const canManuallyChooseProviderNode = computed(
 )
 const regularProxies = computed(() =>
   allProxies.value.filter(
-    (name) => name !== manualGroupName.value && !customNodeNames.value.includes(name),
+    (name) => name !== manualGroupName.value && !customNodeNamesSet.value.has(name),
   ),
 )
 const providerNodes = computed(() => {

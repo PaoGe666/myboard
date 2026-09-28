@@ -115,8 +115,9 @@ export const fetchProxies = async () => {
     if (iconReflect) {
       proxyMap.value[name].icon = iconReflect.icon
     }
-    if (IPv6test.value && getIPv6FromExtra(proxy)) {
-      IPv6Map.value[name] = true
+    if (IPv6test.value) {
+      // 不在 extra 里的历史记录代表未测过(或不通过);直接覆盖,避免旧 true 残留。
+      IPv6Map.value[name] = getIPv6FromExtra(proxy)
     }
 
     if (proxy.type.toLowerCase() === PROXY_TYPE.Smart) {
@@ -132,6 +133,7 @@ export const fetchProxies = async () => {
 export const handlerProxySelect = async (proxyGroupName: string, proxyName: string) => {
   const proxyGroup = proxyMap.value[proxyGroupName]
 
+  if (!proxyGroup) return
   if (proxyGroup.type.toLowerCase() === PROXY_TYPE.LoadBalance) return
   if (proxyGroup.now === proxyName) {
     await fetchProxies()
@@ -147,7 +149,7 @@ export const handlerProxySelect = async (proxyGroupName: string, proxyName: stri
       // 切换节点的顺带动作,失败不该盖掉「已切换」这件主事
       .forEach((c) => disconnectByIdAPI(c.id).catch(() => {}))
   }
-  fetchProxies()
+  await fetchProxies()
 }
 
 const getProviderNameByProxy = (proxyName: string) => {

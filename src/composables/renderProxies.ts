@@ -6,6 +6,7 @@ import {
   proxyProviederList,
   type LatencyMap,
 } from '@/assembly/proxies'
+import { isCustomNode } from '@/composables/proxies'
 import { NOT_CONNECTED, PROXY_SORT_TYPE } from '@/constant'
 import { getDirectProxyGroupMode, hasProxyGroupMode, isProxyGroup } from '@/helper'
 import {
@@ -152,21 +153,11 @@ const filterProxies = (
         return hasProxyGroupMode(name, modeFilter)
       }
 
-      // 自动/手动分页中，手写节点只属于“手动选择”列表。某些后端会把
-      // 自定义节点直接写进策略组的 all，若在自动模式照单渲染就会出现
-      // “自定义节点”分段；订阅节点仍通过 provider-name 保留在自动列表。
-      if (modeFilter === 'auto') {
-        const node = proxyMap.value[name]
-        const belongsToProvider = Boolean(
-          node?.['provider-name'] ||
-          proxyProviederList.value.some((provider) =>
-            provider.proxies.some((proxy) => proxy.name === name),
-          ),
-        )
-
-        if (!belongsToProvider) {
-          return false
-        }
+      // 自动/手动分页中,手写节点只属于「手动选择」列表。某些后端会把
+      // 自定义节点直接写进策略组的 all,若在自动模式照单渲染就会出现
+      // 「自定义节点」分段;订阅节点仍通过 provider-name 保留在自动列表。
+      if (modeFilter === 'auto' && isCustomNode(name)) {
+        return false
       }
 
       return groupName ? getDirectProxyGroupMode(groupName) === modeFilter : true

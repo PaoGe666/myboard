@@ -128,18 +128,27 @@ const GROUP_OR_SYSTEM_TYPES = new Set<string>(Object.values(PROXY_TYPE))
  * 特征: 不是分组(无 all 或 type 非分组)、不属于任何订阅(无 provider-name)、
  * type 是真实节点类型(ss/vmess/trojan...),且不是系统节点(DIRECT/REJECT 等)。
  */
+export const isCustomNode = (name: string) => {
+  const node = proxyMap.value[name]
+  if (!node) return false
+  if (node.all?.length) return false
+  const type = node.type?.toLowerCase()
+  if (type && GROUP_OR_SYSTEM_TYPES.has(type)) return false
+  if (getProxyProviderName(name)) return false
+  return true
+}
+
+// 集合版本(便于在 computed 内 O(1) 查询,避免每节点 .includes 一次扫一遍数组)
+export const customNodeNamesSet = computed(() => {
+  const set = new Set<string>()
+  for (const name of Object.keys(proxyMap.value)) {
+    if (isCustomNode(name)) set.add(name)
+  }
+  return set
+})
+
 export const customNodeNames = computed(() => {
-  return Object.keys(proxyMap.value)
-    .filter((name) => {
-      const node = proxyMap.value[name]
-      if (!node) return false
-      if (node.all?.length) return false
-      const type = node.type?.toLowerCase()
-      if (type && GROUP_OR_SYSTEM_TYPES.has(type)) return false
-      if (getProxyProviderName(name)) return false
-      return true
-    })
-    .sort((a, b) => a.localeCompare(b))
+  return [...customNodeNamesSet.value].sort((a, b) => a.localeCompare(b))
 })
 
 // 自定义节点编辑器对话框状态(null = 新增模式)

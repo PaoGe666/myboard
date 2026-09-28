@@ -106,9 +106,16 @@ const handlerImportLink = () => {
   shareLinkText.value = ''
 }
 
-const isValid = computed(() =>
-  Boolean(name.value.trim() && server.value.trim() && Number(port.value) > 0),
-)
+const isValid = computed(() => {
+  const portNum = Number(port.value)
+  return (
+    Boolean(name.value.trim()) &&
+    Boolean(server.value.trim()) &&
+    Number.isInteger(portNum) &&
+    portNum >= 1 &&
+    portNum <= 65535
+  )
+})
 
 const buildNode = (): Record<string, unknown> => {
   let node: Record<string, unknown> = {}

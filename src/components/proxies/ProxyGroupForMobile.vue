@@ -118,7 +118,7 @@
 import { useBounceOnVisible } from '@/composables/bouncein'
 import { disableProxiesPageScroll } from '@/composables/proxies'
 import { useRenderProxies } from '@/composables/renderProxies'
-import { customNodeNames } from '@/composables/proxies'
+import { customNodeNames, customNodeNamesSet } from '@/composables/proxies'
 import { MYBOARD_MANUAL_GROUP_PREFIX, PROXY_TYPE } from '@/constant'
 import { isHiddenGroup } from '@/helper'
 import { getPreferredProxyIcon } from '@/helper/proxyIcon'
@@ -173,7 +173,7 @@ const canManuallyChooseProviderNode = computed(
 )
 const regularProxies = computed(() =>
   allProxies.value.filter(
-    (name) => name !== manualGroupName.value && !customNodeNames.value.includes(name),
+    (name) => name !== manualGroupName.value && !customNodeNamesSet.value.has(name),
   ),
 )
 const providerNodes = computed(() => {
