@@ -202,3 +202,14 @@ http://your-ip:port/#/setup?hostname=你的IP&port=9090&secret=你的密码
 这个仓库是个人修改版，不再保留原项目 README 中的在线地址、官方 Docker 镜像、赞助说明等内容。若需查看原始项目，请前往：
 
 - [Zephyruso/zashboard](https://github.com/Zephyruso/zashboard)
+
+## 版本命名
+
+本仓库版本号遵循 `zashboard版本-修改日期` 格式：
+
+- **前一半**：对齐的 [zashboard](https://github.com/Zephyruso/zashboard) 上游版本号（如 `3.26.0`）
+- **后一半**：本仓库当前修改日期，格式 `YYYYMMDD`（如 `20260928`）
+
+示例：`3.26.0-20260928` 表示基于 zashboard v3.26.0，于 2026-09-28 修改。
+
+每次基于新 zashboard 版本合并或进行重要修改时，应同步更新 `package.json` 的 `version` 字段。
