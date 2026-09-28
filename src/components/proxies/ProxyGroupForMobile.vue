@@ -172,7 +172,9 @@ const canManuallyChooseProviderNode = computed(
     Boolean(proxyMap.value[manualGroupName.value]),
 )
 const regularProxies = computed(() =>
-  allProxies.value.filter((name) => name !== manualGroupName.value),
+  allProxies.value.filter(
+    (name) => name !== manualGroupName.value && !customNodeNames.value.includes(name),
+  ),
 )
 const providerNodes = computed(() => {
   const names = new Set<string>()
